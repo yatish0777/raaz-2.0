@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BadgeCheck, Building2, Download, FileText, Gavel, Globe, Link2, Search, ShieldAlert, Snowflake, UserRound } from 'lucide-react'
+import { BadgeCheck, Building2, CheckCircle2, Circle, Download, FileText, Gavel, Globe, Link2, Search, ShieldAlert, Snowflake, UserRound } from 'lucide-react'
 import { ROLES, TX_KIND, dt, inr, inrShort, num, short, token } from '../../lib/format'
 import { Address, Card, ConfidenceBar, CopyBtn, Empty, RiskBadge, btn, input, inputAuto } from '../../components/ui'
 import { HBar } from '../../components/charts'
@@ -278,6 +278,26 @@ export function AttributionTab({ d, exchanges }) {
               <div>
                 <div className="mb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Evidence</div>
                 <ul className="list-disc space-y-0.5 pl-4 text-sm text-ink-2">{a.evidence.map((x) => <li key={x}>{x}</li>)}</ul>
+                {a.confidence_steps && (
+                  <div className="mt-3 rounded-lg border border-line bg-slate-50 p-3">
+                    <div className="mb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">How the confidence is calculated</div>
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {a.confidence_steps.map((st) => (
+                          <tr key={st.step}>
+                            <td className="py-0.5 pr-3 text-ink-2">{st.step}</td>
+                            <td className={`py-0.5 text-right font-mono font-semibold ${st.points < 0 ? 'text-critical' : 'text-navy-900'}`}>{st.points > 0 ? `+${st.points}` : st.points}</td>
+                          </tr>
+                        ))}
+                        <tr className="border-t border-line">
+                          <td className="pt-1 pr-3 font-semibold text-ink">Confidence (limited to 52-97)</td>
+                          <td className="pt-1 text-right font-mono font-bold text-navy-900">{Math.round(a.confidence * 100)}%</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <div className="mt-1 text-[11px] text-ink-3">Fixed formula, no machine learning. "Probable" attribution only - confirm with the exchange's KYC reply.</div>
+                  </div>
+                )}
               </div>
             </div>
             {i === 0 && (
@@ -296,17 +316,52 @@ export function AttributionTab({ d, exchanges }) {
 
 // ---------------------------------------------------------------- Risk
 export function RiskTab({ d }) {
-  const f = d.risk.factors
+  const r = d.risk
+  const rules = r.rules || []
+  const fired = rules.filter((x) => x.fired)
   return (
     <div className="grid gap-5 lg:grid-cols-3">
-      <Card title="Risk score" subtitle={d.risk.model}>
-        <RiskGauge score={d.risk.score} />
-        <p className="mt-4 text-xs text-ink-3">
+      <Card title="Risk score" subtitle={r.model}>
+        <RiskGauge score={r.score} />
+        <div className="mt-4 rounded-lg bg-slate-50 p-3 font-mono text-xs text-ink-2">
+          {r.base ?? 0} base
+          {fired.map((x) => <span key={x.id}> + {x.points}</span>)}
+          {' '}= <b className="text-navy-900">{r.score}</b>{(r.base ?? 0) + fired.reduce((s, x) => s + x.points, 0) > 100 ? ' (capped at 100)' : ''}
+        </div>
+        <p className="mt-3 text-xs text-ink-3">
           Bands: Low &lt; 40 · Medium 40-59 · High 60-79 · Critical ≥ 80. The score ranks which cases to act on first. It is not proof of guilt.
         </p>
       </Card>
-      <Card className="lg:col-span-2" title="What drives the score" subtitle="How much each feature adds to the score (SHAP-style explanation)">
-        <HBar label="Points" labels={f.map((x) => x.feature)} values={f.map((x) => x.contribution)} format={(v) => `+${v}`} />
+      <Card className="lg:col-span-2" title="Why this score" subtitle={`${fired.length} of ${rules.length} rules triggered · every point has a named reason`} pad={false}>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-line text-left text-[11px] tracking-wide text-ink-3 uppercase">
+              <th className="px-5 py-2 font-semibold">Rule</th>
+              <th className="px-3 py-2 font-semibold">Evidence in this case</th>
+              <th className="px-5 py-2 text-right font-semibold">Points</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            <tr>
+              <td className="px-5 py-2.5 align-top"><div className="flex items-start gap-2 font-medium text-ink"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-brand-600" /> Base score</div></td>
+              <td className="px-3 py-2.5 text-ink-2">{r.base_reason || 'Wallet reported in a victim complaint'}</td>
+              <td className="px-5 py-2.5 text-right font-mono font-semibold text-navy-900">+{r.base ?? 0}</td>
+            </tr>
+            {rules.map((x) => (
+              <tr key={x.id} className={x.fired ? '' : 'text-ink-3'}>
+                <td className="px-5 py-2.5 align-top">
+                  <div className={`flex items-start gap-2 font-medium ${x.fired ? 'text-ink' : ''}`}>
+                    {x.fired ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-critical" /> : <Circle size={16} className="mt-0.5 shrink-0" />}
+                    <span>{x.name}<div className="font-mono text-[10.5px] font-normal text-ink-3">{x.id}</div></span>
+                  </div>
+                </td>
+                <td className={`px-3 py-2.5 align-top ${x.fired ? 'text-ink-2' : ''}`}>{x.evidence}</td>
+                <td className={`px-5 py-2.5 text-right align-top font-mono ${x.fired ? 'font-semibold text-critical' : ''}`}>{x.fired ? `+${x.points}` : `(${x.points})`}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!rules.length && <div className="p-5"><HBar label="Points" labels={r.factors.map((x) => x.feature)} values={r.factors.map((x) => x.contribution)} format={(v) => `+${v}`} /></div>}
       </Card>
     </div>
   )

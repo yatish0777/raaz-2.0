@@ -29,7 +29,7 @@ function buildSteps(d) {
     { icon: Building2, t: 'Attributing exchanges (VASPs)', src: 'Address-label DB + hot-wallet sweep matching',
       logs: n0 ? d.attributions.map((a) => `${a.exchange}: deposit reached at hop ${a.hops}, ${Math.round(a.confidence * 100)}% confidence`) : ['No exchange deposit found within trace depth - funds are held in wallets'] },
     { icon: Gauge, t: 'Scoring risk', src: d.risk.model,
-      logs: [`Risk score ${d.risk.score}/100 (${d.risk.level})`, `Top factor: ${d.risk.factors[0].feature}`] },
+      logs: [`Risk score ${d.risk.score}/100 (${d.risk.level})`, `${(d.risk.rules || []).filter((x) => x.fired).length} of ${(d.risk.rules || []).length} rules triggered`] },
   ]
 }
 

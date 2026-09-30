@@ -4,7 +4,7 @@ import {
   Activity, ArrowRight, BadgeCheck, Building2, Clock, FileText, Gauge, GitBranch, Globe, Layers, Network, Radar, Route, ScanSearch,
   TableProperties, TriangleAlert, Users, Waypoints,
 } from 'lucide-react'
-import { addToWatchlist, getCase, listExchanges } from '../lib/api'
+import { addToWatchlist, getCase, listCases, listExchanges } from '../lib/api'
 import { NETWORKS, ROLES, dt, inr, inrShort, token } from '../lib/format'
 import {
   Address, Card, ErrorBox, Loading, NetworkBadge, PriorityBadge, RiskBadge, StatusBadge, Tabs, btn, useAsync,
@@ -77,12 +77,13 @@ function NodePanel({ node, d, onClose }) {
 
 export default function Workspace() {
   const { id } = useParams()
-  const { data, error, loading } = useAsync(() => Promise.all([getCase(id), listExchanges()]), [id])
+  const { data, error, loading } = useAsync(() => Promise.all([getCase(id), listExchanges(), listCases()]), [id])
   const [tab, setTab] = useState('graph')
   const [sel, setSel] = useState(null)
   const [showPath, setShowPath] = useState(true)
   const d = data?.[0]
   const exchanges = data?.[1]
+  const allCases = data?.[2]
   const path = useMemo(() => (d ? pathToNearest(d) : new Set()), [d])
   const rolesPresent = useMemo(() => (d ? Object.keys(ROLES).filter((r) => d.nodes.some((n) => n.role === r)) : []), [d])
 
@@ -170,6 +171,31 @@ export default function Workspace() {
           <div><div className="font-semibold">No exchange reached yet</div>{inr(c.held_in_wallets_inr)} is still in layering wallets. The wallets are on the watchlist and RAAZ will alert you when funds move towards an exchange.</div>
         </div>
       )}
+
+      {/* cross-case link - same operator across complaints */}
+      {c.linked_cases.length > 0 && (() => {
+        const linked = (allCases || []).filter((x) => c.linked_cases.includes(x.id))
+        const group = [c, ...linked]
+        const total = group.reduce((s, x) => s + (x.amount_lost_inr || 0), 0)
+        const states = [...new Set(group.map((x) => x.state).filter(Boolean))]
+        return (
+          <div className="mb-5 flex flex-wrap items-center gap-4 rounded-xl border-2 border-red-200 bg-red-50 p-4">
+            <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-critical text-white"><Layers size={22} /></div>
+            <div className="min-w-0 flex-1">
+              <div className="text-[11px] font-bold tracking-wider text-critical-ink uppercase">Cross-case link · {c.syndicate}</div>
+              <div className="text-base font-bold text-navy-900">
+                {group.length} complaints{states.length > 1 ? ` from ${states.length} states` : ''} share the same consolidation wallet - probably one operator
+              </div>
+              <div className="mt-0.5 text-sm text-ink-2">
+                {inr(total)} lost across these complaints. Coordinate one joint request to the exchange instead of {group.length} separate ones.
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {c.linked_cases.map((x) => <Link key={x} to={`/cases/${x}`} className="rounded bg-white px-2 py-0.5 text-xs font-semibold text-critical-ink ring-1 ring-red-200 hover:underline">{x}</Link>)}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* summary strip */}
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">

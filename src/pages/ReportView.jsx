@@ -227,7 +227,7 @@ export default function ReportView() {
               </table>
 
               <h2>Risk assessment</h2>
-              <p>Risk score <b>{d.risk.score}/100 ({d.risk.level})</b> - {d.risk.model}. Main factors: {d.risk.factors.slice(0, 4).map((f) => `${f.feature} (+${f.contribution})`).join('; ')}.</p>
+              <p>Risk score <b>{d.risk.score}/100 ({d.risk.level})</b> - {d.risk.model}. Score built from: {d.risk.factors.map((f) => `${f.feature} (+${f.contribution})`).join('; ')}. Rule-based, not a trained model; it ranks urgency and is not proof of guilt.</p>
 
               <h2>Key transactions</h2>
               <table>
@@ -248,6 +248,14 @@ export default function ReportView() {
               <p className="text-[12px] text-ink-3">Anyone can re-compute this hash from the exported bundle to confirm nothing was changed. It supports the certificate for electronic records under Section 63 of the Bharatiya Sakshya Adhiniyam, 2023.</p>
             </>
           ) : n0 ? (
+            <>
+            {!n0.fiu_ind_registered && (
+              <div className="no-print mb-5 rounded-lg border border-amber-300 bg-amber-50 p-3 text-[13px] text-warn-ink">
+                <b>Foreign / unregistered exchange ({n0.jurisdiction}).</b> An Indian BNSS notice may not legally bind a company outside India.
+                Route this request through I4C's VASP coordination channel, or a letter of request / MLAT via MHA, and send it meanwhile as a request for voluntary cooperation.
+                Check the wording with your legal cell before issue.
+              </div>
+            )}
             <div ref={noticeRef}>
               <div className="text-center">
                 <div className="text-[11px] font-bold tracking-[0.2em] text-warn-ink">DRAFT - VERIFY BEFORE ISSUE</div>
@@ -291,6 +299,12 @@ export default function ReportView() {
               <p>
                 You are also requested to <b>immediately freeze debits</b> from the said account(s), up to <b>{inr(n0.victim_attributable_inr)}</b> (the complainant's pro-rata share of the traced funds), and to preserve all related records until further orders.
               </p>
+              {!n0.fiu_ind_registered && (
+                <p>
+                  As your platform is not registered with FIU-IND and is located outside India, this is sent as a <b>request for voluntary cooperation</b> under your law-enforcement request policy.
+                  A formal request through the appropriate international channel will follow if required.
+                </p>
+              )}
               <p>Please treat this notice as confidential and do not inform the account holder.</p>
               <div className="mt-8 flex justify-end">
                 <div className="text-right text-[13px]">
@@ -301,6 +315,7 @@ export default function ReportView() {
                 </div>
               </div>
             </div>
+            </>
           ) : (
             <p>No exchange has been identified for this case yet.</p>
           )}

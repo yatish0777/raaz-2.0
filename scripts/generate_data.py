@@ -496,15 +496,25 @@ def analyse(c, info):
     attributions = []
     for exid, r in ex_rows.items():
         ex = EX_BY_ID[exid]
-        conf = 0.93 - 0.035 * max(0, r["hops"] - 2) - (0.12 if mixer_used else 0) + R.uniform(-0.04, 0.03)
-        conf = max(0.52, min(0.97, conf))
+        # Attribution confidence is a fixed, explainable formula (no random jitter):
+        #   93% base when the deposit address is swept into a known exchange hot wallet
+        #   -3.5 points for every hop beyond 2 (longer paths = weaker link)
+        #   -12 points if the path passed through a mixer (probabilistic link)
+        #   clamped to 52%-97%
+        R.uniform(-0.04, 0.03)  # keep the RNG sequence identical so the rest of the demo data is unchanged
+        hop_pen = 0.035 * max(0, r["hops"] - 2)
+        mix_pen = 0.12 if mixer_used else 0
+        conf = max(0.52, min(0.97, 0.93 - hop_pen - mix_pen))
+        conf_steps = [dict(step="Deposit address swept into known exchange hot wallet", points=93)]
+        if hop_pen: conf_steps.append(dict(step=f"{r['hops'] - 2} hop(s) beyond 2 x -3.5", points=-round(hop_pen * 100, 1)))
+        if mix_pen: conf_steps.append(dict(step="Path passes through a mixer (probabilistic link)", points=-12))
         attributions.append(dict(
             exchange_id=exid, exchange=ex["name"], type=ex["type"], jurisdiction=ex["jurisdiction"],
             fiu_ind_registered=ex["fiu_ind_registered"], hops=r["hops"], amount_inr=r["amount_inr"],
             pct_of_traced_pool=round(100 * r["amount_inr"] / pool_inr, 1),
             victim_attributable_inr=int(r["amount_inr"] * victim_ratio),
             deposit_addresses=sorted(r["deposits"]), networks=sorted(r["networks"]),
-            confidence=round(conf, 2),
+            confidence=round(conf, 2), confidence_steps=conf_steps,
             evidence=[
                 "Deposit address swept to a known exchange hot wallet",
                 "Deposit address pattern matches exchange's per-user address scheme",
@@ -578,22 +588,40 @@ def analyse(c, info):
         for w in cl["wallets"]:
             nodes[w].setdefault("cluster_id", cl["id"])
 
-    # ---- risk score (mock XGBoost output with feature contributions) --------
-    feats = [("Victim complaint on record (NCRP)", 18)]
-    if mixer_used: feats.append(("Mixer / tumbler interaction", 17))
-    if c.meta["peel_steps"]: feats.append(("Peel-chain structure", 10))
-    if "rapid" in c.flags: feats.append(("High-velocity layering (<30 min/hop)", 11))
-    if len(first_hop) >= 3: feats.append(("Fan-out to 3+ fresh wallets", 8))
-    if "fan_in" in c.flags: feats.append(("Inflows from multiple unrelated sources", 9))
-    if c.meta["bridge"]: feats.append(("Cross-chain bridge hop", 7))
-    if nearest and not nearest["fiu_ind_registered"]: feats.append(("Cash-out via offshore / unregistered VASP", 10))
-    if c.syndicate: feats.append(("Wallet linked to a known syndicate cluster", 12))
-    feats.append(("Newly created wallets (<7 days old)", R.randint(4, 9)))
-    feats.append(("Transaction amount profile", R.randint(2, 8)))
-    score = min(99, sum(v for _, v in feats) + R.randint(-3, 3))
+    # ---- risk score: deterministic 7-rule engine ------------------------------
+    # Every point comes from a named rule with visible evidence. No trained model.
+    R.randint(4, 9); R.randint(2, 8); R.randint(-3, 3)  # keep the RNG sequence identical (old demo jitter)
+    cons_wallets = c.meta["consolidation"]
+    unattributed = (nearest is None) or ("held" in c.flags)
+    mix_ev = "; ".join(f"{m['amount']:,} {c.token} sent into {m['name']}" for m in c.meta["mixer"])
+    rules = [
+        dict(id="sanctioned_address_hop", name="Hop touches a sanctioned address (OFAC list)", points=40, fired=False,
+             evidence="No wallet on the traced path matched the sanctioned-address list."),
+        dict(id="mixer_interaction", name="Mixer / tumbler interaction", points=30, fired=mixer_used,
+             evidence=mix_ev if mixer_used else "No mixer contract or known mixer address on the path."),
+        dict(id="smurfing_split", name="Smurfing / peel-chain splitting", points=15, fired=bool(c.meta["peel_steps"]),
+             evidence=(f"{sum(c.meta['peel_steps'])}-step peel chain shedding small side amounts at each hop."
+                       if c.meta["peel_steps"] else "No repeated small-amount splitting found.")),
+        dict(id="high_fan_out_node", name="High fan-out from the reported wallet", points=15, fired=len(first_hop) >= 3,
+             evidence=(f"Reported wallet split funds into {len(first_hop)} fresh wallets."
+                       if len(first_hop) >= 3 else f"Reported wallet sent to only {len(first_hop)} wallet(s).")),
+        dict(id="rapid_layering", name="Rapid layering (median < 30 min per hop)", points=12, fired="rapid" in c.flags,
+             evidence=("Median time between hops is under 30 minutes." if "rapid" in c.flags
+                       else "Hops are spread out; no scripted-speed movement.")),
+        dict(id="fan_in_terminal", name="Branches converge before cash-out", points=10, fired=bool(cons_wallets),
+             evidence=(f"{len(cons_wallets)} consolidation wallet(s) re-merge layering branches before the exchange."
+                       if cons_wallets else "No consolidation point before the exchange.")),
+        dict(id="unattributed_terminal_node", name="Funds end in an unlabelled wallet", points=10, fired=unattributed,
+             evidence=("Some traced funds rest in wallets with no exchange label - still movable."
+                       if unattributed else "Traced funds reached labelled exchange deposit addresses.")),
+    ]
+    base = 30  # reported in a victim complaint - every case starts here
+    score = max(0, min(100, base + sum(r["points"] for r in rules if r["fired"])))
     level = "Critical" if score >= 80 else "High" if score >= 60 else "Medium" if score >= 40 else "Low"
-    risk = dict(score=score, level=level, model="XGBoost v0.3 (demo)",
-                factors=[dict(feature=f, contribution=v) for f, v in sorted(feats, key=lambda x: -x[1])])
+    risk = dict(score=score, level=level, model="Deterministic rule engine (7 rules)", base=base,
+                base_reason="Wallet reported in a victim complaint", rules=rules,
+                factors=[dict(feature="Reported in a victim complaint (base)", contribution=base)]
+                        + [dict(feature=r["name"], contribution=r["points"]) for r in rules if r["fired"]])
     return dict(attributions=attributions, nearest=nearest, patterns=pats, clusters=clusters, risk=risk,
                 pool_inr=pool_inr, traced_to_vasp_inr=traced_to_vasp, held_inr=held_inr)
 
@@ -806,17 +834,18 @@ for i in range(26):
                        tx_hash=new_hash(wl["network"]) if atype != "NOTICE_RESPONSE" else None, at=iso(at), read=R.random() < 0.45))
 alerts.sort(key=lambda a: a["at"], reverse=True)
 
-# national-level daily stats (dashboard trend)
+# unit-level daily stats (dashboard trend) - demo values sized for ONE cyber unit,
+# not a national feed. Kept small and believable on purpose.
 daily = []
 for d in range(90, 0, -1):
     day = NOW - timedelta(days=d)
-    wk = 0.82 if day.weekday() >= 5 else 1.0
+    wk = 0.6 if day.weekday() >= 5 else 1.0
     trend = 1 + (90 - d) * 0.004
     daily.append(dict(date=day.strftime("%Y-%m-%d"),
-                      complaints=int(R.gauss(410, 45) * wk * trend),
-                      wallets_traced=int(R.gauss(2600, 300) * wk * trend),
-                      vasps_identified=int(R.gauss(190, 25) * wk * trend),
-                      amount_traced_cr=round(R.gauss(9.5, 1.8) * wk * trend, 2)))
+                      complaints=max(0, round(R.gauss(6, 2) * wk * trend)),
+                      wallets_traced=max(0, round(R.gauss(24, 6) * wk * trend)),
+                      exchange_leads=max(0, round(R.gauss(1.4, 0.9) * wk * trend)),
+                      amount_traced_lakh=max(0.0, round(R.gauss(22, 7) * wk * trend, 1))))
 
 samples = []
 for net in ["TRON", "ETH", "BTC", "BSC", "POLYGON"]:

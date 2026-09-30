@@ -145,8 +145,8 @@ export default function Layout() {
             />
           </form>
           <div className="ml-auto flex items-center gap-2">
-            <span className="hidden items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-good-ink md:inline-flex">
-              <span className="live-dot size-2 rounded-full bg-good" /> Live monitoring
+            <span className="hidden items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-warn-ink md:inline-flex" title="Prototype running on demo data. Live blockchain tracing is not connected in this build.">
+              <span className="size-2 rounded-full bg-amber-500" /> Demo mode
             </span>
             <Link to="/watchlist" className="relative rounded-lg p-2 text-ink-2 hover:bg-slate-100" aria-label={`${unread} unread alerts`}>
               <Bell size={19} />

@@ -78,8 +78,8 @@ export default function Dashboard() {
       <div className="mt-5 grid gap-5 xl:grid-cols-3">
         <Card
           className="xl:col-span-2"
-          title="Crypto-fraud complaints ingested from NCRP"
-          subtitle="National feed, per day"
+          title="Crypto-fraud complaints received by this unit"
+          subtitle="Per day · demo data in NCRP-style format (no live NCRP connection)"
           action={
             <div className="flex rounded-lg border border-line p-0.5 text-xs">
               {[30, 90].map((r) => (
@@ -99,12 +99,12 @@ export default function Dashboard() {
           />
           <div className="mt-3 grid grid-cols-3 gap-3 border-t border-line pt-3 text-center">
             <div><div className="text-xs text-ink-3">Wallets traced ({range}d)</div><div className="font-bold text-navy-900">{num(daily.reduce((s, d) => s + d.wallets_traced, 0))}</div></div>
-            <div><div className="text-xs text-ink-3">VASPs identified ({range}d)</div><div className="font-bold text-navy-900">{num(daily.reduce((s, d) => s + d.vasps_identified, 0))}</div></div>
-            <div><div className="text-xs text-ink-3">Amount traced ({range}d)</div><div className="font-bold text-navy-900">₹{num(daily.reduce((s, d) => s + d.amount_traced_cr, 0), 1)} Cr</div></div>
+            <div><div className="text-xs text-ink-3">Exchange leads found ({range}d)</div><div className="font-bold text-navy-900">{num(daily.reduce((s, d) => s + d.exchange_leads, 0))}</div></div>
+            <div><div className="text-xs text-ink-3">Amount traced ({range}d)</div><div className="font-bold text-navy-900">{inrShort(daily.reduce((s, d) => s + d.amount_traced_lakh, 0) * 1e5)}</div></div>
           </div>
         </Card>
 
-        <Card title="Live alerts" subtitle="Watchlisted wallets" action={<Link to="/watchlist" className={btn.ghost}>View all <ArrowRight size={14} /></Link>} pad={false}>
+        <Card title="Watchlist alerts" subtitle="Watchlisted wallets · simulated in demo mode" action={<Link to="/watchlist" className={btn.ghost}>View all <ArrowRight size={14} /></Link>} pad={false}>
           <ul className="divide-y divide-line">
             {alerts.slice(0, 4).map((a) => (
               <li key={a.id} className={`px-5 py-3 ${a.live ? 'slide-in bg-brand-50/50' : ''}`}>
