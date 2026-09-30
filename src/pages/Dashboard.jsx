@@ -142,7 +142,7 @@ export default function Dashboard() {
                   <td className="px-2 py-3"><RiskBadge level={c.risk_level} score={c.risk_score} /></td>
                   <td className="px-2 py-3 whitespace-nowrap text-ink-3">{ago(c.created_at)}</td>
                   <td className="py-2.5 pr-4 pl-2 text-right">
-                    <Link to={s.action.to} className={s.urgent ? btn.primary : btn.secondary}>{s.action.label}</Link>
+                    <Link to={s.action.to} className={`${btn.secondary} whitespace-nowrap ${s.urgent ? 'border-brand-600 font-semibold text-brand-700' : ''}`}>{s.action.label}</Link>
                   </td>
                 </tr>
               ))}

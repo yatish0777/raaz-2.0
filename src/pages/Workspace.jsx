@@ -173,7 +173,7 @@ export default function Workspace() {
                   <dl className="mt-3 grid grid-cols-3 gap-3 text-sm">
                     <div><dt className="text-xs text-ink-3">Reached it</dt><dd className="tabular font-semibold text-ink">{inrShort(n0.amount_inr)}</dd></div>
                     <div><dt className="text-xs text-ink-3">Victim's share</dt><dd className="tabular font-semibold text-ink">{inrShort(n0.victim_attributable_inr)}</dd></div>
-                    <div><dt className="text-xs text-ink-3">Match</dt><dd className="tabular font-semibold text-ink">{Math.round(n0.confidence * 100)}% probable</dd></div>
+                    <div><dt className="text-xs text-ink-3">Probable match</dt><dd className="tabular font-semibold text-ink">{Math.round(n0.confidence * 100)}%</dd></div>
                   </dl>
                 </li>
               ) : (
