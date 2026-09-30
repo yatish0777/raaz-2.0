@@ -48,7 +48,7 @@ function GroupFlow({ grp, casesById, nodeById, onOpen }) {
           <title>{`${r.id}: ${r.c?.fraud_type || ''}, ${inr(r.n?.amount_lost_inr || 0)} lost. Click to open.`}</title>
           <rect x="0" y={-ROW / 2 + 2} width={X_CASE + 10} height={ROW - 4} fill="transparent" />
           <text x="0" y="-2" fontSize="14" fontWeight="600" fill="var(--color-navy-900)" style={{ fontFamily: 'var(--font-cond)' }}>{r.id}</text>
-          <text x="0" y="12" fontSize="11.5" fill="var(--color-ink-3)">{r.c ? `${r.c.district}, ${r.c.state}` : ''}</text>
+          <text x="0" y="12" fontSize="11.5" fill="var(--color-ink-3)">{r.c ? `${r.c.district.length > 18 ? r.c.district.slice(0, 17) + "…" : r.c.district}, ${r.c.state}` : ''}</text>
           <text x={X_CASE - 12} y="4" fontSize="12.5" textAnchor="end" fill="var(--color-ink)" className="tabular">{inrShort(r.n?.amount_lost_inr || 0)}</text>
           <circle cx={X_CASE} cy="0" r="5" fill="var(--color-navy-900)" />
         </g>
