@@ -76,6 +76,10 @@ h1, h2, .font-cond { font-family: var(--font-cond); }
 }
 .live-dot { animation: pulse-ring 1.8s infinite; }
 
+/* sidebar labels ease in after the rail widens */
+@keyframes sidebar-fade { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
+.sidebar-fade { animation: sidebar-fade 0.22s ease-out 0.06s both; }
+
 @keyframes slide-in {
   from { transform: translateY(8px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }

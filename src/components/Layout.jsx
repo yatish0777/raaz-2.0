@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Bell, Bot, Building2, FileText, FolderSearch, LayoutDashboard, Menu, Network, Radar, Search, ShieldCheck, X,
+  Bell, Bot, Building2, FileText, FolderSearch, LayoutDashboard, Menu, Network, PanelLeftClose, PanelLeftOpen, Radar, Search, X,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { listAlerts, search, startLiveFeed, subscribe } from '../lib/api'
@@ -69,6 +69,14 @@ export default function Layout() {
   const unread = useUnread()
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
+  const [railOpen, setRailOpen] = useState(false)
+  const [pinned, setPinned] = useState(() => {
+    try { return localStorage.getItem('raaz.menuPinned') === '1' } catch { return false }
+  })
+  useEffect(() => {
+    try { localStorage.setItem('raaz.menuPinned', pinned ? '1' : '0') } catch { /* storage blocked - keep in memory */ }
+  }, [pinned])
+  useEffect(() => setRailOpen(false), [loc.pathname])
 
   useEffect(() => startLiveFeed(), [])
   useEffect(() => setOpen(false), [loc.pathname])
@@ -82,47 +90,97 @@ export default function Layout() {
     }
   }
 
-  const sidebar = (
-    <aside className="flex h-full w-60 flex-col border-r border-line bg-white">
-      <div className="flex items-start justify-between px-5 pt-6 pb-5">
-        <Logo />
-        <button className="text-ink-3 lg:hidden" onClick={() => setOpen(false)} aria-label="Close menu"><X size={20} /></button>
+  // compact = icon rail. On desktop the rail stays slim while you work in the main area and
+  // slides open when you point at it (or tab into it). "Keep open" pins it at full width.
+  const renderSidebar = (compact, mobile = false) => (
+    <aside className={`flex h-full flex-col border-r border-line bg-white ${mobile ? 'w-60' : 'w-full'}`}>
+      <div className={`flex items-start justify-between pt-6 pb-5 transition-[padding] duration-200 ${compact ? 'px-[22px]' : 'px-5'}`}>
+        {compact ? (
+          <div className="font-cond text-[26px] leading-none font-bold text-navy-900" aria-label="RAAZ">R<span className="text-stamp">.</span></div>
+        ) : (
+          <div className="sidebar-fade"><Logo /></div>
+        )}
+        {mobile && <button className="text-ink-3" onClick={() => setOpen(false)} aria-label="Close menu"><X size={20} /></button>}
       </div>
-      <nav className="flex-1 space-y-px px-3">
+      <nav className="flex-1 space-y-px px-3" aria-label="Main">
         {NAV.map((n) => (
           <NavLink
             key={n.to}
             to={n.to}
             end={n.end}
+            title={compact ? n.label : undefined}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-md border-l-[3px] px-3 py-2 text-sm ${
+              `relative flex items-center gap-3 rounded-md border-l-[3px] px-3 py-2 text-sm whitespace-nowrap ${
                 isActive ? 'border-brand-600 bg-brand-50 font-semibold text-navy-900' : 'border-transparent text-ink-2 hover:bg-page hover:text-ink'
               }`
             }
           >
-            <n.icon size={17} strokeWidth={1.9} />
-            <span className="flex-1">{n.label}</span>
-            {n.badge === 'alerts' && unread > 0 && (
-              <span className="tabular rounded bg-stamp px-1.5 text-[11px] font-semibold text-white">{unread}</span>
+            <n.icon size={17} strokeWidth={1.9} className="shrink-0" />
+            {compact ? (
+              n.badge === 'alerts' && unread > 0 && <span className="absolute top-1.5 left-7 size-2 rounded-full bg-stamp" aria-label={`${unread} unread alerts`} />
+            ) : (
+              <>
+                <span className="sidebar-fade flex-1">{n.label}</span>
+                {n.badge === 'alerts' && unread > 0 && (
+                  <span className="sidebar-fade tabular rounded bg-stamp px-1.5 text-[11px] font-semibold text-white">{unread}</span>
+                )}
+              </>
             )}
           </NavLink>
         ))}
       </nav>
       <div className="space-y-2 border-t border-line px-3 pt-3 pb-4">
-        <OllamaStatus />
-        <p className="px-2 text-[11px] leading-relaxed text-ink-3">
-          For authorised police use. Every action is logged. SIH26183 prototype v0.2.
-        </p>
+        {compact ? (
+          <div className="flex justify-center py-2 text-ink-3" title="Local AI (Ollama) status"><Bot size={16} /></div>
+        ) : (
+          <div className="sidebar-fade space-y-2">
+            <OllamaStatus />
+            <p className="px-2 text-[11px] leading-relaxed text-ink-3">
+              For authorised police use. Every action is logged. SIH26183 prototype v0.2.
+            </p>
+          </div>
+        )}
+        {!mobile && (
+          <button
+            type="button"
+            onClick={() => setPinned((p) => !p)}
+            aria-pressed={pinned}
+            title={pinned ? 'Let the menu slide away' : 'Keep the menu open'}
+            className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs whitespace-nowrap text-ink-3 hover:bg-page hover:text-ink ${compact ? 'justify-center' : ''}`}
+          >
+            {pinned ? <PanelLeftClose size={16} className="shrink-0" /> : <PanelLeftOpen size={16} className="shrink-0" />}
+            {!compact && <span className="sidebar-fade">{pinned ? 'Let menu slide away' : 'Keep menu open'}</span>}
+          </button>
+        )}
       </div>
     </aside>
   )
 
+  const expanded = pinned || railOpen
   return (
     <div className="app-shell flex h-full">
-      <div className="no-print hidden lg:block">{sidebar}</div>
+      {/* desktop: the space the menu takes animates between rail (68px) and full (240px) only when pinned;
+          when not pinned it opens over the page so the content doesn't jump */}
+      <div
+        className="no-print relative hidden shrink-0 transition-[width] duration-300 ease-out lg:block"
+        style={{ width: pinned ? 240 : 68 }}
+        onMouseEnter={() => setRailOpen(true)}
+        onMouseLeave={() => setRailOpen(false)}
+        onFocus={() => setRailOpen(true)}
+        onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setRailOpen(false) }}
+      >
+        <div
+          className={`absolute inset-y-0 left-0 z-30 overflow-hidden transition-[width,box-shadow] duration-300 ease-out ${
+            expanded && !pinned ? 'shadow-[8px_0_24px_-12px_rgba(20,32,43,0.35)]' : ''
+          }`}
+          style={{ width: expanded ? 240 : 68 }}
+        >
+          {renderSidebar(!expanded)}
+        </div>
+      </div>
       {open && (
         <div className="no-print fixed inset-0 z-40 flex lg:hidden">
-          {sidebar}
+          {renderSidebar(false, true)}
           <button className="flex-1 bg-black/40" aria-label="Close menu" onClick={() => setOpen(false)} />
         </div>
       )}
