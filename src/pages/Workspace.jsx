@@ -55,6 +55,8 @@ function NodePanel({ node, d, onClose }) {
         <dt className="text-ink-3">First seen</dt><dd className="text-right text-xs">{dt(node.first_seen)}</dd>
         <dt className="text-ink-3">Last seen</dt><dd className="text-right text-xs">{dt(node.last_seen)}</dd>
         {node.cluster_id && <><dt className="text-ink-3">Cluster</dt><dd className="text-right font-mono text-xs">{node.cluster_id}</dd></>}
+        {node.ml_laundering_prob != null && <><dt className="text-ink-3">Laundering prob. (ML)</dt><dd className="text-right font-semibold">{Math.round(node.ml_laundering_prob * 100)}%</dd></>}
+        {node.anomaly_pct != null && <><dt className="text-ink-3">Anomaly (vs all wallets)</dt><dd className="text-right font-semibold">{Math.round(node.anomaly_pct)}th pct</dd></>}
       </dl>
       <div className="flex flex-col gap-2 pt-1">
         <Link to={`/wallets/${node.address}`} className={btn.secondary}>Open wallet profile <ArrowRight size={14} /></Link>

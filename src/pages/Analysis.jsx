@@ -22,14 +22,21 @@ function buildSteps(d) {
           ? `Depth auto-extended from ${c.trace_depth} to ${maxHop} hops to reach an exchange deposit`
           : `Deepest hop reached: ${maxHop}`,
       ]) },
-    { icon: Network, t: 'Building transaction graph', src: 'NetworkX → Neo4j',
-      logs: [`${d.nodes.length} nodes, ${d.transactions.length} edges written to graph store`, 'Computed flow values and time ordering per edge'] },
+    { icon: Network, t: 'Building transaction graph', src: 'NetworkX (Neo4j planned)',
+      logs: [`${d.nodes.length} nodes, ${d.transactions.length} edges in the transaction graph`, 'Computed flow values and time ordering per edge'] },
     { icon: ScanSearch, t: 'Detecting patterns & clustering wallets', src: 'Pattern rules + clustering heuristics',
       logs: [...d.patterns.map((p) => `Pattern: ${p.type} (${p.severity})`), `${d.clusters.length} wallet cluster(s) formed`] },
     { icon: Building2, t: 'Attributing exchanges (VASPs)', src: 'Address-label DB + hot-wallet sweep matching',
       logs: n0 ? d.attributions.map((a) => `${a.exchange}: deposit reached at hop ${a.hops}, ${Math.round(a.confidence * 100)}% confidence`) : ['No exchange deposit found within trace depth - funds are held in wallets'] },
     { icon: Gauge, t: 'Scoring risk', src: d.risk.model,
-      logs: [`Risk score ${d.risk.score}/100 (${d.risk.level})`, `${(d.risk.rules || []).filter((x) => x.fired).length} of ${(d.risk.rules || []).length} rules triggered`] },
+      logs: [
+        `Rule engine: ${(d.risk.rules || []).filter((x) => x.fired).length} of ${(d.risk.rules || []).length} rules triggered (score ${d.risk.rule_score ?? d.risk.score})`,
+        ...(d.risk.ml ? [
+          `Isolation Forest anomaly score: ${Math.round(d.risk.ml.anomaly.case_score)}/100`,
+          `Laundering-wallet classifier flagged ${d.risk.ml.supervised.flagged} of ${d.risk.ml.supervised.of} wallets`,
+        ] : []),
+        `Final risk score ${d.risk.score}/100 (${d.risk.level})`,
+      ] },
   ]
 }
 

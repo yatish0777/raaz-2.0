@@ -227,7 +227,9 @@ export default function ReportView() {
               </table>
 
               <h2>Risk assessment</h2>
-              <p>Risk score <b>{d.risk.score}/100 ({d.risk.level})</b> - {d.risk.model}. Score built from: {d.risk.factors.map((f) => `${f.feature} (+${f.contribution})`).join('; ')}. Rule-based, not a trained model; it ranks urgency and is not proof of guilt.</p>
+              <p>Risk score <b>{d.risk.score}/100 ({d.risk.level})</b> - {d.risk.model}. Rule score {d.risk.rule_score ?? d.risk.score}/100 from: {d.risk.factors.map((f) => `${f.feature} (+${f.contribution})`).join('; ')}.
+                {d.risk.ml && <> Anomaly score (Isolation Forest, unsupervised) {Math.round(d.risk.ml.anomaly.case_score)}/100; the supervised laundering-wallet classifier flagged {d.risk.ml.supervised.flagged} of {d.risk.ml.supervised.of} traced wallets (model trained on synthetic demo labels).</>}
+                {' '}The score ranks urgency and is not proof of guilt.</p>
 
               <h2>Key transactions</h2>
               <table>

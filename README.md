@@ -20,7 +20,7 @@ Smart India Hackathon 2026 · Problem Statement **SIH26183**
 ![Vercel](https://img.shields.io/badge/Vercel-0b1f3a?logo=vercel&logoColor=white)
 
 > **RAAZ 2.0** - clean-up of the SIH idea-round prototype:
-> honest "Demo mode" labels, unit-level demo numbers, a 7-rule explainable risk engine instead of a mock ML score,
+> honest "Demo mode" labels, unit-level demo numbers, a hybrid risk score (7 rules + unsupervised anomaly detection + supervised laundering-wallet classifier) instead of a mock ML score,
 > a visible confidence formula, a prominent cross-case (same operator) banner, and foreign-exchange routing guidance on the draft notice.
 > Everything still runs on **fictional demo data**; live blockchain tracing is the next step.
 
@@ -52,7 +52,7 @@ RAAZ is a web platform for cybercrime investigators. **Enter the victim-reported
 | A transaction graph they can explore | Interactive D3 graph with the route to the exchange highlighted |
 | The laundering pattern named | Fan-out, peel chains, mixers, cross-chain bridges, rapid layering, consolidation, dusting |
 | **The nearest probable exchange**, with proof | Deposit address swept into a known exchange hot wallet, with a confidence score and the complainant's pro-rata share |
-| A risk score with reasons | 0-100 score built from 7 named rules; each rule shows the evidence and points it adds |
+| A risk score with reasons | Hybrid score: 7 named rules (known patterns) + Isolation Forest anomaly score (new patterns) + a supervised laundering-wallet classifier |
 | Links to other cases | Wallets shared between complaints reveal the same operator |
 | Documents ready to send | Investigation report (AI-written narrative) and a draft Section 94 BNSS notice to the exchange asking for KYC and a freeze |
 | Live alerts | Watchlisted wallets raise an alert the moment funds move |
@@ -154,12 +154,14 @@ This repository is the **UI prototype and dataset** for the hackathon. We are cl
 | NetworkX analysis | ✅ Built | Computed from the transaction graph (see above) |
 | AI report writing | ✅ Client built | Streams from a local Ollama model, falls back to an offline template. Tested against a stand-in for the Ollama API; needs a real model on your machine (see [Ollama](#ai-reports-with-ollama)) |
 | Reports, notices, evidence hash | ✅ Built | Print / save as PDF; SHA-256 of the evidence bundle |
-| Risk score | ✅ Built | Deterministic 7-rule engine (base 30 for a reported wallet + mixer, sanctioned hop, smurfing, fan-out, rapid layering, convergence, unlabelled end-point), computed from each case's graph |
+| Risk score - rules | ✅ Built | Deterministic 7-rule engine (base 30 for a reported wallet + mixer, sanctioned hop, smurfing, fan-out, rapid layering, convergence, unlabelled end-point) |
+| Risk score - unsupervised ML | ✅ Built | Isolation Forest (200 trees, 10 wallet-behaviour features) gives each wallet an anomaly percentile; case score = 55% rules + 45% anomaly; flags possible new patterns |
+| Laundering-wallet classifier - supervised ML | ✅ Built (demo labels) | Gradient-boosted trees, validated with 5-fold cross-validation grouped by case. Trained on synthetic labels, so the metrics are optimistic until real labelled cases are available |
 | Attribution confidence | ✅ Built | Fixed formula: 93% base for a deposit swept into a known hot wallet, -3.5 per hop beyond 2, -12 through a mixer, limited to 52-97% |
 | Pattern labels, clusters | 🧪 Modelled | Produced together with the dummy data to show the intended output |
 | Live blockchain data | 🔜 Planned | The app reads JSON through a mock API layer ([`src/lib/api.js`](src/lib/api.js)) shaped like the future FastAPI responses |
 | FastAPI, Celery + Redis, PostgreSQL, Neo4j | 🔜 Planned | See [target architecture](#target-architecture) |
-| ML risk model (e.g. XGBoost), real address-label database | 🔜 Future | Only once labelled historical cases exist; the rule engine stays as the explainable baseline |
+| Supervised model on real labelled cases, real address-label database | 🔜 Future | Retrain the classifier on labelled Indian cases; the rules stay as the explainable baseline |
 | Login / SSO | ⏸ Left out | The prototype opens straight to the dashboard. Production would use department SSO with hardware OTP and audit logging |
 
 "New investigation" works on any valid TRON, EVM or Bitcoin address. For a wallet that is not in the dataset, the app builds a result from an existing case on the same network and marks it **"Demo-generated result"**.
@@ -177,7 +179,7 @@ This repository is the **UI prototype and dataset** for the hackathon. We are cl
 | Blockchain data | Generated | Etherscan V2, Blockscout, TRON API, Blockchair / Bitcoin APIs, Web3.py |
 | Background jobs | Simulated pipeline animation | **Celery + Redis** |
 | Database | JSON / CSV files | **PostgreSQL** |
-| Risk scoring | **7-rule engine** (explainable, no training data needed) | Rule engine + ML model once labelled cases exist |
+| Risk scoring | **7 rules + Isolation Forest + gradient-boosted classifier** (scikit-learn) | Same hybrid, classifier retrained on real labelled cases |
 | AI reporting | **Ollama** (local LLM; case data never leaves the machine) | Ollama on a department GPU server, called by the backend |
 | Hosting | Vercel | Vercel (frontend) + department-hosted backend |
 

@@ -783,6 +783,159 @@ for d in case_details:
                                   wallets=[s["address"] for s in SYNDICATES if s["name"] == d["case"]["syndicate"]]))
         d["case"]["patterns"].append("Cross-case linkage")
 
+# --------------------------------------------------------------------------- #
+# Machine learning layer (runs after all cases are built)
+#   * Unsupervised: IsolationForest over wallet behaviour -> anomaly score.
+#     Needs no labels, so it can flag NEW laundering patterns the rules don't know.
+#   * Supervised: gradient-boosted classifier "is this a laundering wallet?"
+#     Trained on the synthetic ground-truth roles, evaluated on held-out CASES
+#     (GroupKFold) so a case's wallets are never scored by a model that saw them.
+#   Final case score = 55% rule score + 45% anomaly score (formula shown in the UI).
+#   Uses its own seeded RNG, so the rest of the demo data is unchanged.
+# --------------------------------------------------------------------------- #
+import numpy as np
+from sklearn.ensemble import HistGradientBoostingClassifier, IsolationForest
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.model_selection import GroupKFold
+
+LAUNDERING_ROLES = {"suspect", "intermediary", "consolidation"}
+FEATURES = [
+    ("in_degree", "Distinct senders"),
+    ("out_degree", "Distinct receivers"),
+    ("in_tx", "Incoming transfers"),
+    ("out_tx", "Outgoing transfers"),
+    ("forward_ratio", "Share of received value sent onward"),
+    ("hold_minutes", "Minutes between first receipt and first send (log)"),
+    ("active_hours", "Active lifetime in hours (log)"),
+    ("value_log", "Value received (log INR)"),
+    ("out_amount_cv", "Variation in outgoing amounts"),
+    ("top_recipient_share", "Share of outflow to the largest receiver"),
+]
+FEAT_KEYS = [k for k, _ in FEATURES]
+FEAT_LABEL = dict(FEATURES)
+
+def _ts(x):
+    return datetime.fromisoformat(x.replace("Z", "")) if x else None
+
+rows, meta_rows = [], []
+for d in case_details:
+    ins, outs = defaultdict(list), defaultdict(list)
+    for t in d["transactions"]:
+        outs[t["from_address"]].append(t)
+        ins[t["to_address"]].append(t)
+    for n in d["nodes"]:
+        a = n["address"]
+        i, o = ins[a], outs[a]
+        in_v = sum(t["value_inr"] for t in i)
+        out_v = sum(t["value_inr"] for t in o)
+        ti = [_ts(t["timestamp"]) for t in i]
+        to = [_ts(t["timestamp"]) for t in o]
+        allt = ti + to
+        hold = ((min(to) - min(ti)).total_seconds() / 60) if (ti and to) else 0.0
+        span = ((max(allt) - min(allt)).total_seconds() / 3600) if len(allt) > 1 else 0.0
+        oa = np.array([t["value_inr"] for t in o], dtype=float)
+        cv = float(oa.std() / oa.mean()) if len(oa) > 1 and oa.mean() > 0 else 0.0
+        per_rcv = defaultdict(float)
+        for t in o:
+            per_rcv[t["to_address"]] += t["value_inr"]
+        top_share = (max(per_rcv.values()) / out_v) if out_v > 0 else 0.0
+        rows.append([
+            len({t["from_address"] for t in i}), len({t["to_address"] for t in o}), len(i), len(o),
+            min(2.0, out_v / in_v) if in_v > 0 else 0.0,
+            math.log1p(max(0.0, hold)), math.log1p(span), math.log1p(in_v), cv, top_share,
+        ])
+        meta_rows.append((d, n, 1 if n["role"] in LAUNDERING_ROLES else 0))
+
+X = np.array(rows, dtype=float)
+y = np.array([m[2] for m in meta_rows])
+groups = np.array([m[0]["case"]["id"] for m in meta_rows])
+
+# ---- unsupervised: IsolationForest (200 trees) --------------------------------
+iso_model = IsolationForest(n_estimators=200, contamination="auto", random_state=26183).fit(X)
+raw = -iso_model.score_samples(X)                      # higher = more unusual
+anom_pct = np.array([100.0 * (raw < v).mean() for v in raw])   # percentile vs all wallets
+med = np.median(X, axis=0)
+iqr = np.subtract(*np.percentile(X, [75, 25], axis=0))
+iqr[iqr == 0] = 1.0
+zs = (X - med) / iqr
+
+def anomaly_reasons(k):
+    order = np.argsort(-np.abs(zs[k]))[:2]
+    out = []
+    for j in order:
+        if abs(zs[k][j]) < 1.0:
+            continue
+        out.append(f"{FEAT_LABEL[FEAT_KEYS[j]]} {'much higher' if zs[k][j] > 0 else 'much lower'} than typical wallets")
+    return out
+
+# ---- supervised: laundering-wallet classifier, out-of-fold by case ------------
+oof = np.zeros(len(y))
+for tr, te in GroupKFold(n_splits=5).split(X, y, groups):
+    clf = HistGradientBoostingClassifier(max_iter=150, learning_rate=0.08, random_state=26183).fit(X[tr], y[tr])
+    oof[te] = clf.predict_proba(X[te])[:, 1]
+final_clf = HistGradientBoostingClassifier(max_iter=150, learning_rate=0.08, random_state=26183).fit(X, y)
+pi = permutation_importance(final_clf, X, y, n_repeats=5, random_state=26183, scoring="roc_auc")
+importance = sorted(((FEAT_LABEL[FEAT_KEYS[j]], round(float(pi.importances_mean[j]), 3)) for j in range(len(FEAT_KEYS))),
+                    key=lambda x: -x[1])
+pred = (oof >= 0.5).astype(int)
+MODEL_CARD = dict(
+    task="Is this wallet a laundering wallet (suspect / layering / consolidation)?",
+    model="Gradient-boosted trees (scikit-learn HistGradientBoosting)",
+    features=len(FEAT_KEYS), wallets=int(len(y)), cases=int(len(set(groups))),
+    validation="5-fold cross-validation grouped by case (held-out cases)",
+    precision=round(float(precision_score(y, pred)), 3), recall=round(float(recall_score(y, pred)), 3),
+    f1=round(float(f1_score(y, pred)), 3), roc_auc=round(float(roc_auc_score(y, oof)), 3),
+    top_features=[dict(feature=f, importance=v) for f, v in importance[:5]],
+    caveat="Trained and tested on SYNTHETIC demo labels, so these numbers are optimistic. "
+           "Real accuracy must be measured on labelled Indian cases before any operational use.",
+)
+ANOMALY_CARD = dict(
+    model="Isolation Forest (scikit-learn, 200 trees)", features=len(FEAT_KEYS), wallets=int(len(y)),
+    how="Scores how different each wallet's behaviour is from all other wallets. No labels needed, "
+        "so it can surface laundering patterns that no rule describes yet.",
+)
+
+# ---- write back per wallet + per case -----------------------------------------
+by_case = defaultdict(list)
+for k, (d, n, _) in enumerate(meta_rows):
+    n["ml_laundering_prob"] = round(float(oof[k]), 3)
+    n["anomaly_pct"] = round(float(anom_pct[k]), 1)
+    by_case[d["case"]["id"]].append(k)
+
+W_RULES, W_ANOM = 0.55, 0.45
+for d in case_details:
+    ks = by_case[d["case"]["id"]]
+    traced = [k for k in ks if meta_rows[k][1]["hop"] >= 0 and meta_rows[k][1]["role"] not in ("exchange_hot",)]
+    top = sorted(traced, key=lambda k: -anom_pct[k])[:3]
+    case_anom = round(float(np.mean([anom_pct[k] for k in top])), 1) if top else 0.0
+    rule_score = d["risk"]["score"]
+    final = int(round(W_RULES * rule_score + W_ANOM * case_anom))
+    fired = sum(1 for r in d["risk"]["rules"] if r["fired"])
+    flagged = sorted([k for k in traced if oof[k] >= 0.5], key=lambda k: -oof[k])
+    unusual = [dict(address=meta_rows[k][1]["address"], role=meta_rows[k][1]["role"], anomaly_pct=round(float(anom_pct[k]), 1),
+                    reasons=anomaly_reasons(k)) for k in top]
+    new_pattern = bool(case_anom >= 90 and fired <= 1)
+    level = "Critical" if final >= 80 else "High" if final >= 60 else "Medium" if final >= 40 else "Low"
+    d["risk"].update(
+        rule_score=rule_score, score=final, level=level,
+        model="Hybrid: rule engine + machine learning",
+        blend=dict(rules_weight=W_RULES, anomaly_weight=W_ANOM, rule_score=rule_score, anomaly_score=case_anom),
+        ml=dict(
+            anomaly=dict(card=ANOMALY_CARD, case_score=case_anom, top_wallets=unusual,
+                         new_pattern=new_pattern,
+                         new_pattern_note=("Very unusual behaviour that the rules barely cover - review manually, it may be a new laundering method."
+                                           if new_pattern else None)),
+            supervised=dict(card=MODEL_CARD, flagged=len(flagged), of=len(traced),
+                            wallets=[dict(address=meta_rows[k][1]["address"], role=meta_rows[k][1]["role"],
+                                          prob=round(float(oof[k]), 3)) for k in flagged[:8]]),
+        ),
+    )
+    c = d["case"]
+    c["risk_score"], c["risk_level"] = final, level
+    amt = c["amount_lost_inr"]
+    c["priority"] = "P1" if final >= 80 or amt >= 2_500_000 else "P2" if final >= 60 or amt >= 500_000 else "P3"
+
 # exchanges directory with computed linkage
 exchanges_out = []
 for e in EXCHANGES:

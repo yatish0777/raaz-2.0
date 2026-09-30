@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BadgeCheck, Building2, CheckCircle2, Circle, Download, FileText, Gavel, Globe, Link2, Search, ShieldAlert, Snowflake, UserRound } from 'lucide-react'
+import { BadgeCheck, Brain, Building2, CheckCircle2, Circle, Download, FileText, Gavel, Globe, Link2, ListChecks, Search, ShieldAlert, Snowflake, Sparkles, TriangleAlert, UserRound } from 'lucide-react'
 import { ROLES, TX_KIND, dt, inr, inrShort, num, short, token } from '../../lib/format'
 import { Address, Card, ConfidenceBar, CopyBtn, Empty, RiskBadge, btn, input, inputAuto } from '../../components/ui'
 import { HBar } from '../../components/charts'
@@ -315,54 +315,165 @@ export function AttributionTab({ d, exchanges }) {
 }
 
 // ---------------------------------------------------------------- Risk
-export function RiskTab({ d }) {
-  const r = d.risk
+function RuleTable({ r }) {
   const rules = r.rules || []
   const fired = rules.filter((x) => x.fired)
   return (
-    <div className="grid gap-5 lg:grid-cols-3">
+    <Card className="lg:col-span-3" title="Layer 1 - Rule engine (known patterns)" subtitle={`${fired.length} of ${rules.length} rules triggered · rule score ${r.rule_score ?? r.score}/100 · every point has a named reason`} pad={false}>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-line text-left text-[11px] tracking-wide text-ink-3 uppercase">
+            <th className="px-5 py-2 font-semibold">Rule</th>
+            <th className="px-3 py-2 font-semibold">Evidence in this case</th>
+            <th className="px-5 py-2 text-right font-semibold">Points</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          <tr>
+            <td className="px-5 py-2.5 align-top"><div className="flex items-start gap-2 font-medium text-ink"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-brand-600" /> Base score</div></td>
+            <td className="px-3 py-2.5 text-ink-2">{r.base_reason || 'Wallet reported in a victim complaint'}</td>
+            <td className="px-5 py-2.5 text-right font-mono font-semibold text-navy-900">+{r.base ?? 0}</td>
+          </tr>
+          {rules.map((x) => (
+            <tr key={x.id} className={x.fired ? '' : 'text-ink-3'}>
+              <td className="px-5 py-2.5 align-top">
+                <div className={`flex items-start gap-2 font-medium ${x.fired ? 'text-ink' : ''}`}>
+                  {x.fired ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-critical" /> : <Circle size={16} className="mt-0.5 shrink-0" />}
+                  <span>{x.name}<div className="font-mono text-[10.5px] font-normal text-ink-3">{x.id}</div></span>
+                </div>
+              </td>
+              <td className={`px-3 py-2.5 align-top ${x.fired ? 'text-ink-2' : ''}`}>{x.evidence}</td>
+              <td className={`px-5 py-2.5 text-right align-top font-mono ${x.fired ? 'font-semibold text-critical' : ''}`}>{x.fired ? `+${x.points}` : `(${x.points})`}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
+  )
+}
+
+export function RiskTab({ d }) {
+  const r = d.risk
+  const ml = r.ml
+  const b = r.blend
+  if (!r.rules) {
+    return (
       <Card title="Risk score" subtitle={r.model}>
         <RiskGauge score={r.score} />
-        <div className="mt-4 rounded-lg bg-slate-50 p-3 font-mono text-xs text-ink-2">
-          {r.base ?? 0} base
-          {fired.map((x) => <span key={x.id}> + {x.points}</span>)}
-          {' '}= <b className="text-navy-900">{r.score}</b>{(r.base ?? 0) + fired.reduce((s, x) => s + x.points, 0) > 100 ? ' (capped at 100)' : ''}
-        </div>
+        <HBar label="Points" labels={r.factors.map((x) => x.feature)} values={r.factors.map((x) => x.contribution)} format={(v) => `+${v}`} />
+      </Card>
+    )
+  }
+  const fired = r.rules.filter((x) => x.fired).length
+  const an = ml?.anomaly
+  const sv = ml?.supervised
+  return (
+    <div className="grid gap-5 lg:grid-cols-3">
+      <Card title="Final risk score" subtitle={r.model}>
+        <RiskGauge score={r.score} />
+        {b && (
+          <div className="mt-4 rounded-lg bg-slate-50 p-3 font-mono text-xs leading-relaxed text-ink-2">
+            {Math.round(b.rules_weight * 100)}% × rules {b.rule_score}<br />
+            + {Math.round(b.anomaly_weight * 100)}% × anomaly {b.anomaly_score}<br />
+            = <b className="text-navy-900">{r.score}</b>
+          </div>
+        )}
         <p className="mt-3 text-xs text-ink-3">
           Bands: Low &lt; 40 · Medium 40-59 · High 60-79 · Critical ≥ 80. The score ranks which cases to act on first. It is not proof of guilt.
         </p>
       </Card>
-      <Card className="lg:col-span-2" title="Why this score" subtitle={`${fired.length} of ${rules.length} rules triggered · every point has a named reason`} pad={false}>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-left text-[11px] tracking-wide text-ink-3 uppercase">
-              <th className="px-5 py-2 font-semibold">Rule</th>
-              <th className="px-3 py-2 font-semibold">Evidence in this case</th>
-              <th className="px-5 py-2 text-right font-semibold">Points</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            <tr>
-              <td className="px-5 py-2.5 align-top"><div className="flex items-start gap-2 font-medium text-ink"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-brand-600" /> Base score</div></td>
-              <td className="px-3 py-2.5 text-ink-2">{r.base_reason || 'Wallet reported in a victim complaint'}</td>
-              <td className="px-5 py-2.5 text-right font-mono font-semibold text-navy-900">+{r.base ?? 0}</td>
-            </tr>
-            {rules.map((x) => (
-              <tr key={x.id} className={x.fired ? '' : 'text-ink-3'}>
-                <td className="px-5 py-2.5 align-top">
-                  <div className={`flex items-start gap-2 font-medium ${x.fired ? 'text-ink' : ''}`}>
-                    {x.fired ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-critical" /> : <Circle size={16} className="mt-0.5 shrink-0" />}
-                    <span>{x.name}<div className="font-mono text-[10.5px] font-normal text-ink-3">{x.id}</div></span>
-                  </div>
-                </td>
-                <td className={`px-3 py-2.5 align-top ${x.fired ? 'text-ink-2' : ''}`}>{x.evidence}</td>
-                <td className={`px-5 py-2.5 text-right align-top font-mono ${x.fired ? 'font-semibold text-critical' : ''}`}>{x.fired ? `+${x.points}` : `(${x.points})`}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!rules.length && <div className="p-5"><HBar label="Points" labels={r.factors.map((x) => x.feature)} values={r.factors.map((x) => x.contribution)} format={(v) => `+${v}`} /></div>}
+
+      <Card className="lg:col-span-2" title="How RAAZ scores a case" subtitle="Known patterns, unknown patterns, and wallet-level ML - side by side">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-line p-3">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-2"><ListChecks size={14} /> Rule engine</div>
+            <div className="mt-1 text-2xl font-bold text-navy-900">{r.rule_score ?? r.score}<span className="text-sm font-medium text-ink-3">/100</span></div>
+            <div className="text-[11px] text-ink-3">{fired} of {r.rules.length} rules · catches <b>known</b> patterns</div>
+          </div>
+          {an && (
+            <div className="rounded-xl border border-line p-3">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-2"><Sparkles size={14} /> Anomaly (unsupervised)</div>
+              <div className="mt-1 text-2xl font-bold text-navy-900">{Math.round(an.case_score)}<span className="text-sm font-medium text-ink-3">/100</span></div>
+              <div className="text-[11px] text-ink-3">Isolation Forest · catches <b>new / unknown</b> behaviour</div>
+            </div>
+          )}
+          {sv && (
+            <div className="rounded-xl border border-line p-3">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-2"><Brain size={14} /> Classifier (supervised)</div>
+              <div className="mt-1 text-2xl font-bold text-navy-900">{sv.flagged}<span className="text-sm font-medium text-ink-3"> of {sv.of}</span></div>
+              <div className="text-[11px] text-ink-3">traced wallets flagged as <b>laundering wallets</b></div>
+            </div>
+          )}
+        </div>
+        {an && (an.new_pattern ? (
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-critical-ink">
+            <TriangleAlert size={16} className="mt-0.5 shrink-0" />
+            <div><b>Possible new pattern.</b> {an.new_pattern_note}</div>
+          </div>
+        ) : (
+          <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-ink-2">
+            <b>New-pattern check:</b> not triggered - the unusual behaviour here is already explained by the rules.
+            It fires when the anomaly score is 90+ while at most one rule fires, i.e. the wallets look very abnormal but no known pattern explains why.
+          </div>
+        ))}
       </Card>
+
+      <RuleTable r={r} />
+
+      {an && (
+        <Card className="lg:col-span-3 xl:col-span-1" title="Layer 2 - Anomaly detection (unsupervised)" subtitle={an.card.model}>
+          <p className="text-sm text-ink-2">{an.card.how}</p>
+          <div className="mt-3 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Most unusual wallets in this case</div>
+          <ul className="mt-1 space-y-2.5">
+            {an.top_wallets.map((w) => (
+              <li key={w.address} className="rounded-lg border border-line p-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-1.5"><RoleGlyph role={w.role} size={11} /><Address value={w.address} head={6} tail={5} copy={false} /></span>
+                  <span className="shrink-0 text-xs font-semibold text-navy-900">more unusual than {Math.round(w.anomaly_pct)}%</span>
+                </div>
+                <div className="text-[11px] text-ink-3">{ROLES[w.role]?.label}</div>
+                {w.reasons.length > 0 && <ul className="mt-1 list-disc pl-4 text-xs text-ink-2">{w.reasons.map((x) => <li key={x}>{x}</li>)}</ul>}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 text-[11px] text-ink-3">Case anomaly score = average of its 3 most unusual traced wallets, as a percentile of all {an.card.wallets} wallets analysed.</div>
+        </Card>
+      )}
+
+      {sv && (
+        <Card className="lg:col-span-3 xl:col-span-2" title="Layer 3 - Laundering-wallet classifier (supervised)" subtitle={sv.card.model}>
+          <div className="grid gap-5 md:grid-cols-2">
+            <div>
+              <div className="text-sm text-ink-2">{sv.card.task}</div>
+              <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                {[['Precision', sv.card.precision], ['Recall', sv.card.recall], ['F1', sv.card.f1], ['ROC-AUC', sv.card.roc_auc]].map(([k, v]) => (
+                  <div key={k} className="rounded-lg bg-slate-50 py-2"><div className="text-[11px] text-ink-3">{k}</div><div className="font-bold text-navy-900">{v.toFixed(2)}</div></div>
+                ))}
+              </div>
+              <div className="mt-2 text-[11px] text-ink-3">{sv.card.validation} · {sv.card.features} behaviour features · {sv.card.wallets} wallets from {sv.card.cases} cases</div>
+              <div className="mt-3 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">What the model relies on most</div>
+              <HBar label="Importance" labels={sv.card.top_features.map((f) => f.feature)} values={sv.card.top_features.map((f) => f.importance)} format={(v) => v.toFixed(3)} />
+            </div>
+            <div>
+              <div className="text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Wallets flagged in this case (held-out prediction)</div>
+              {sv.wallets.length ? (
+                <ul className="mt-1 divide-y divide-line">
+                  {sv.wallets.map((w) => (
+                    <li key={w.address} className="flex items-center justify-between gap-2 py-1.5">
+                      <span className="flex min-w-0 items-center gap-1.5"><RoleGlyph role={w.role} size={11} /><Address value={w.address} head={6} tail={5} copy={false} /></span>
+                      <ConfidenceBar value={w.prob} />
+                    </li>
+                  ))}
+                </ul>
+              ) : <div className="mt-2 text-sm text-ink-3">No wallet crossed the 50% threshold.</div>}
+              {sv.flagged > sv.wallets.length && <div className="mt-1 text-[11px] text-ink-3">+ {sv.flagged - sv.wallets.length} more</div>}
+            </div>
+          </div>
+          <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-warn-ink">
+            <TriangleAlert size={14} className="mt-0.5 shrink-0" /><div>{sv.card.caveat}</div>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }
