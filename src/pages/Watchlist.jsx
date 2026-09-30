@@ -24,7 +24,6 @@ export default function Watchlist() {
   return (
     <>
       <PageHeader
-        eyebrow="Real-time monitoring"
         title="Watchlist & alerts"
         subtitle="RAAZ checks watched wallets for new on-chain activity and alerts you when funds move"
         actions={<span className="inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1.5 text-sm font-medium text-good-ink"><span className="live-dot size-2 rounded-full bg-good" /> Monitoring {list.length} wallets</span>}

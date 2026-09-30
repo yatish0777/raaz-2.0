@@ -44,7 +44,6 @@ export default function NewInvestigation() {
   return (
     <>
       <PageHeader
-        eyebrow="Start a trace"
         title="New investigation"
         subtitle="Enter the wallet address the victim paid to. RAAZ traces where the money went and finds the exchange that received it."
       />

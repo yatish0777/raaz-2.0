@@ -39,7 +39,6 @@ export default function Exchanges() {
   return (
     <>
       <PageHeader
-        eyebrow="Reference"
         title="VASP directory"
         subtitle="Exchanges and OTC/P2P desks seen receiving traced fraud funds, with how quickly they respond to law enforcement"
       />
@@ -108,18 +107,18 @@ export default function Exchanges() {
                         <td colSpan={9} className="px-3 pt-2 pb-4">
                           <div className="grid gap-5 md:grid-cols-3">
                             <div>
-                              <div className="mb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Known hot wallets</div>
+                              <div className="mb-1 text-[13px] font-semibold text-ink-2">Known hot wallets</div>
                               {e.hot_wallets.map((h) => (
                                 <div key={h.address} className="flex items-center gap-2 py-0.5"><NetworkBadge network={h.network} /><Address value={h.address} head={8} tail={6} /></div>
                               ))}
                             </div>
                             <div>
-                              <div className="mb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Compliance contact for LEA requests</div>
+                              <div className="mb-1 text-[13px] font-semibold text-ink-2">Compliance contact for LEA requests</div>
                               <div className="flex items-center gap-1.5 text-sm"><Mail size={14} className="text-ink-3" /> {e.compliance_contact}</div>
                               <div className="mt-2 text-xs text-ink-3">{e.known_deposit_addresses} deposit addresses seen in RAAZ cases · supports {e.networks.join(', ')}</div>
                             </div>
                             <div>
-                              <div className="mb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Cases where this is the nearest VASP ({linked.length})</div>
+                              <div className="mb-1 text-[13px] font-semibold text-ink-2">Cases where this is the nearest VASP ({linked.length})</div>
                               <div className="space-y-1">
                                 {linked.slice(0, 6).map((c) => (
                                   <Link key={c.id} to={`/cases/${c.id}`} className="flex items-center justify-between gap-2 text-sm hover:underline">

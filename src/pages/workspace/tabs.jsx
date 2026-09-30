@@ -195,7 +195,7 @@ export function PatternsTab({ d }) {
             </div>
           )}
           <div className="mt-3 border-t border-line pt-2.5">
-            <div className="mb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Evidence wallets ({p.wallets.length})</div>
+            <div className="mb-1 text-[13px] font-semibold text-ink-2">Evidence wallets ({p.wallets.length})</div>
             <div className="flex flex-wrap gap-x-3 gap-y-1">
               {p.wallets.slice(0, 6).map((w) => <Address key={w} value={w} head={6} tail={4} copy={false} />)}
               {p.wallets.length > 6 && <span className="text-xs text-ink-3">+{p.wallets.length - 6} more</span>}
@@ -272,15 +272,15 @@ export function AttributionTab({ d, exchanges }) {
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div>
-                <div className="mb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Deposit address(es) - request KYC for these</div>
+                <div className="mb-1 text-[13px] font-semibold text-ink-2">Deposit address(es) - request KYC for these</div>
                 {a.deposit_addresses.map((w) => <div key={w}><Address value={w} full /></div>)}
               </div>
               <div>
-                <div className="mb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Evidence</div>
+                <div className="mb-1 text-[13px] font-semibold text-ink-2">Evidence</div>
                 <ul className="list-disc space-y-0.5 pl-4 text-sm text-ink-2">{a.evidence.map((x) => <li key={x}>{x}</li>)}</ul>
                 {a.confidence_steps && (
                   <div className="mt-3 rounded-lg border border-line bg-slate-50 p-3">
-                    <div className="mb-1 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">How the confidence is calculated</div>
+                    <div className="mb-1 text-[13px] font-semibold text-ink-2">How the confidence is calculated</div>
                     <table className="w-full text-sm">
                       <tbody>
                         {a.confidence_steps.map((st) => (
@@ -322,7 +322,7 @@ function RuleTable({ r }) {
     <Card className="lg:col-span-3" title="Layer 1 - Rule engine (known patterns)" subtitle={`${fired.length} of ${rules.length} rules triggered · rule score ${r.rule_score ?? r.score}/100 · every point has a named reason`} pad={false}>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-line text-left text-[11px] tracking-wide text-ink-3 uppercase">
+          <tr className="border-b border-line text-left text-xs font-medium text-ink-3">
             <th className="px-5 py-2 font-semibold">Rule</th>
             <th className="px-3 py-2 font-semibold">Evidence in this case</th>
             <th className="px-5 py-2 text-right font-semibold">Points</th>
@@ -423,7 +423,7 @@ export function RiskTab({ d }) {
       {an && (
         <Card className="lg:col-span-3 xl:col-span-1" title="Layer 2 - Anomaly detection (unsupervised)" subtitle={an.card.model}>
           <p className="text-sm text-ink-2">{an.card.how}</p>
-          <div className="mt-3 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Most unusual wallets in this case</div>
+          <div className="mt-3 text-[13px] font-semibold text-ink-2">Most unusual wallets in this case</div>
           <ul className="mt-1 space-y-2.5">
             {an.top_wallets.map((w) => (
               <li key={w.address} className="rounded-lg border border-line p-2.5">
@@ -451,11 +451,11 @@ export function RiskTab({ d }) {
                 ))}
               </div>
               <div className="mt-2 text-[11px] text-ink-3">{sv.card.validation} · {sv.card.features} behaviour features · {sv.card.wallets} wallets from {sv.card.cases} cases</div>
-              <div className="mt-3 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">What the model relies on most</div>
+              <div className="mt-3 text-[13px] font-semibold text-ink-2">What the model relies on most</div>
               <HBar label="Importance" labels={sv.card.top_features.map((f) => f.feature)} values={sv.card.top_features.map((f) => f.importance)} format={(v) => v.toFixed(3)} />
             </div>
             <div>
-              <div className="text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Wallets flagged in this case (held-out prediction)</div>
+              <div className="text-[13px] font-semibold text-ink-2">Wallets flagged in this case (held-out prediction)</div>
               {sv.wallets.length ? (
                 <ul className="mt-1 divide-y divide-line">
                   {sv.wallets.map((w) => (

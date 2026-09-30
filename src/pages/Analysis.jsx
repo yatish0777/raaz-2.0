@@ -85,7 +85,6 @@ export default function Analysis() {
   return (
     <>
       <PageHeader
-        eyebrow={`Case ${c.id}`}
         title={done ? 'Trace complete' : 'Analysis in progress'}
         subtitle={
           params.get('existing')

@@ -46,7 +46,7 @@ export default function WalletProfile() {
     <>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-xs font-semibold tracking-wider text-brand-600 uppercase">Wallet profile</div>
+          <div className="text-sm text-ink-3">Wallet profile</div>
           <div className="mt-1 flex items-center gap-2">
             <Wallet size={20} className="shrink-0 text-navy-900" />
             <h1 className="font-mono text-lg font-semibold break-all text-navy-900">{w.address}</h1>

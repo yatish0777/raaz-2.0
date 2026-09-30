@@ -176,7 +176,7 @@ export default function NxTab({ d }) {
       <Card title="NetworkX functions used">
         <dl className="grid gap-x-6 gap-y-2 text-sm md:grid-cols-2">
           {Object.entries(nx.algorithm_notes).map(([k, v]) => (
-            <div key={k}><dt className="text-xs font-semibold text-ink-3 uppercase">{k.replace('_', ' ')}</dt><dd className="text-ink-2">{v}</dd></div>
+            <div key={k}><dt className="text-xs font-medium text-ink-3">{k.replace('_', ' ')}</dt><dd className="text-ink-2">{v}</dd></div>
           ))}
         </dl>
         <p className="mt-3 text-xs text-ink-3">See also the <Link to="/network" className="text-brand-700 hover:underline">Network map</Link> for links between cases.</p>

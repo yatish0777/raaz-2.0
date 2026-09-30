@@ -72,7 +72,7 @@ export default function Reports() {
   if (error) return <ErrorBox error={error} />
   return (
     <>
-      <PageHeader eyebrow="Documentation" title="Reports & notices" subtitle="Investigation reports and Section 94 BNSS notices, drafted from the trace results" />
+      <PageHeader title="Reports & notices" subtitle="Investigation reports and Section 94 BNSS notices, drafted from the trace results" />
       <OllamaSettings />
       <Card className="mt-5" title="Cases ready for reporting" subtitle={`${rows.length} cases with an identified exchange`} pad={false}>
         <div className="border-b border-line p-3">

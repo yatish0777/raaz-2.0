@@ -18,14 +18,14 @@ export function useAsync(fn, deps = []) {
 }
 
 export const btn = {
-  primary: 'inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50 disabled:cursor-not-allowed',
-  secondary: 'inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-white px-3.5 py-2 text-sm font-medium text-ink hover:bg-slate-50 disabled:opacity-50',
+  primary: 'inline-flex items-center justify-center gap-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 disabled:opacity-50 disabled:cursor-not-allowed',
+  secondary: 'inline-flex items-center justify-center gap-2 rounded-md border border-line bg-white px-3.5 py-2 text-sm font-medium text-ink hover:bg-slate-50 disabled:opacity-50',
   ghost: 'inline-flex items-center justify-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-ink-2 hover:bg-slate-100 hover:text-ink',
-  navy: 'inline-flex items-center justify-center gap-2 rounded-lg bg-navy-900 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-800',
+  navy: 'inline-flex items-center justify-center gap-2 rounded-md bg-navy-900 px-4 py-2 text-sm font-semibold text-white hover:bg-navy-800',
 }
 
 const inputBase =
-  'rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-3 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none'
+  'rounded-md border border-line bg-white px-3 py-2 text-sm text-ink placeholder:text-ink-3 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none'
 export const input = `w-full ${inputBase}`
 /** compact control for filter rows (sizes to content) */
 export const inputAuto = `w-auto ${inputBase}`
@@ -36,7 +36,7 @@ export function Card({ title, subtitle, action, children, className = '', pad = 
       {(title || action) && (
         <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-3.5">
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-ink">{title}</h3>
+            <h3 className="text-[15px] font-semibold text-ink">{title}</h3>
             {subtitle && <p className="mt-0.5 text-xs text-ink-3">{subtitle}</p>}
           </div>
           {action && <div className="shrink-0">{action}</div>}
@@ -47,13 +47,12 @@ export function Card({ title, subtitle, action, children, className = '', pad = 
   )
 }
 
-export function PageHeader({ title, subtitle, actions, eyebrow }) {
+export function PageHeader({ title, subtitle, actions }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-4">
       <div className="min-w-0">
-        {eyebrow && <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-brand-600">{eyebrow}</div>}
-        <h1 className="text-2xl font-bold tracking-tight text-navy-900">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-ink-2">{subtitle}</p>}
+        <h1 className="text-[28px] leading-tight font-semibold text-navy-900">{title}</h1>
+        {subtitle && <p className="mt-1 max-w-[72ch] text-sm text-ink-2">{subtitle}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -65,10 +64,10 @@ const RISK_ICON = { Critical: OctagonAlert, High: TriangleAlert, Medium: CircleA
 export function RiskBadge({ level, score, className = '' }) {
   const Icon = RISK_ICON[level] || Info
   return (
-    <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${RISK[level]?.cls} ${className}`}>
+    <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${RISK[level]?.cls} ${className}`}>
       <Icon size={12} strokeWidth={2.5} />
       {level}
-      {score != null && <span className="tabular font-bold">· {score}</span>}
+      {score != null && <span className="tabular font-bold">{score}</span>}
     </span>
   )
 }
@@ -164,7 +163,7 @@ export function Tabs({ tabs, value, onChange }) {
           >
             {t.icon && <t.icon size={15} />}
             {t.label}
-            {t.count != null && <span className={`rounded-full px-1.5 text-[11px] ${on ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-ink-2'}`}>{t.count}</span>}
+            {t.count != null && <span className={`tabular rounded px-1.5 text-[11px] ${on ? 'bg-brand-100 text-brand-700' : 'bg-page text-ink-2'}`}>{t.count}</span>}
           </button>
         )
       })}

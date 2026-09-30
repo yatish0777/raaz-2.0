@@ -38,7 +38,6 @@ export default function NetworkMap() {
   return (
     <>
       <PageHeader
-        eyebrow="NetworkX · cross-case analysis"
         title="Network map"
         subtitle="Every case graph merged into one NetworkX graph. Two cases are linked when they share a wallet the fraudsters control."
         actions={<a href="/data/nx/png/global_case_links.png" download className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline"><Download size={15} /> PNG (matplotlib)</a>}
@@ -100,7 +99,7 @@ export default function NetworkMap() {
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {grp.cases.map((c) => <Link key={c} to={`/cases/${c}`} className="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-semibold text-brand-700 hover:underline">{c}</Link>)}
               </div>
-              <div className="mt-3 text-[11px] font-semibold tracking-wide text-ink-3 uppercase">Shared wallet{grp.shared_wallets.length > 1 ? 's' : ''}</div>
+              <div className="mt-3 text-[13px] font-semibold text-ink-2">Shared wallet{grp.shared_wallets.length > 1 ? 's' : ''}</div>
               {grp.shared_wallets.map((w) => <Address key={w} value={w} head={10} tail={6} />)}
               {grp.exchanges.length > 0 && <div className="mt-2 text-xs text-ink-3">Cash-out via {grp.exchanges.join(', ')}</div>}
             </Card>
@@ -129,7 +128,7 @@ export default function NetworkMap() {
         <Card title="How this was computed">
           <dl className="space-y-2 text-sm">
             {Object.entries(data.algorithm_notes).map(([k, v]) => (
-              <div key={k}><dt className="text-xs font-semibold text-ink-3 uppercase">{k.replace('_', ' ')}</dt><dd className="text-ink-2">{v}</dd></div>
+              <div key={k}><dt className="text-xs font-medium text-ink-3">{k.replace('_', ' ')}</dt><dd className="text-ink-2">{v}</dd></div>
             ))}
           </dl>
           <p className="mt-3 text-xs text-ink-3">Regenerate with <code className="font-mono">npm run gen-graphs</code> after changing the dummy data.</p>

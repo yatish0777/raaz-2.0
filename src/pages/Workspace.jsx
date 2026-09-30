@@ -109,70 +109,85 @@ export default function Workspace() {
 
   return (
     <>
-      {/* header */}
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+      {/* header: the case file */}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
-            <Link to="/cases" className="hover:text-ink">Cases</Link> / <span className="font-semibold text-ink-2">{c.id}</span>
-            {c.demo_generated && <span className="rounded bg-violet-50 px-1.5 py-0.5 font-semibold text-violet-700">Demo-generated result</span>}
+          <div className="flex flex-wrap items-center gap-2 text-sm text-ink-3">
+            <Link to="/cases" className="hover:text-ink hover:underline">Cases</Link>
+            <span aria-hidden="true">/</span>
+            <span>{c.fraud_type}</span>
+            {c.demo_generated && <span className="rounded bg-violet-50 px-1.5 py-0.5 text-xs font-semibold text-violet-700">Demo-generated result</span>}
           </div>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-navy-900">{c.fraud_type}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <h1 className="text-[38px] leading-none font-semibold tracking-tight text-navy-900">{c.id}</h1>
             <StatusBadge status={c.status} />
             <PriorityBadge p={c.priority} />
             <RiskBadge level={c.risk_level} score={c.risk_score} />
-            <NetworkBadge network={c.network} long />
-            <span className="text-ink-3">·</span>
-            <span className="text-ink-2">NCRP {c.ncrp_ack}</span>
-            <span className="text-ink-3">·</span>
-            <span className="text-ink-2">{c.district}, {c.state}</span>
-            <span className="text-ink-3">·</span>
-            <span className="text-ink-2">IO: {c.investigator}</span>
           </div>
+          <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
+            <div className="flex gap-1.5"><dt className="text-ink-3">NCRP ack.</dt><dd className="tabular text-ink">{c.ncrp_ack}</dd></div>
+            <div className="flex gap-1.5"><dt className="text-ink-3">Place</dt><dd className="text-ink">{c.district}, {c.state}</dd></div>
+            <div className="flex gap-1.5"><dt className="text-ink-3">Officer</dt><dd className="text-ink">{c.investigator}</dd></div>
+            <div className="flex items-center gap-1.5"><dt className="text-ink-3">Chain</dt><dd><NetworkBadge network={c.network} long /></dd></div>
+          </dl>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to={`/reports/${c.id}`} className={btn.primary}><FileText size={16} /> Generate report</Link>
+          <Link to={`/reports/${c.id}`} className={btn.secondary}><FileText size={16} /> Investigation report</Link>
+          {n0 && <Link to={`/reports/${c.id}?tab=notice`} className={btn.primary}>Draft notice to {n0.exchange}</Link>}
         </div>
       </div>
 
-      {/* nearest VASP banner */}
-      {n0 ? (
-        <div className="mb-5 overflow-hidden rounded-xl bg-navy-900 text-white">
-          <div className="flex flex-wrap items-center gap-6 p-5">
-            <div className="flex items-center gap-4">
-              <div className="grid size-12 place-items-center rounded-xl bg-brand-600"><Building2 size={24} /></div>
-              <div>
-                <div className="text-[11px] font-semibold tracking-wider text-brand-200 uppercase">Nearest probable exchange (VASP)</div>
-                <div className="text-2xl font-bold">{n0.exchange}</div>
-                <div className="mt-0.5 flex items-center gap-2 text-sm text-brand-100/80">
-                  {n0.fiu_ind_registered ? <BadgeCheck size={14} className="text-green-400" /> : <Globe size={14} className="text-amber-300" />}
-                  {n0.jurisdiction} · {n0.fiu_ind_registered ? 'FIU-IND registered' : 'Not registered in India'}
-                </div>
-              </div>
-            </div>
-            <div className="grid min-w-0 basis-full grid-cols-2 gap-4 sm:grid-cols-4 lg:basis-0 lg:flex-1">
-              <div><div className="text-xs text-brand-200">Hops away</div><div className="text-xl font-bold">{n0.hops}</div></div>
-              <div><div className="text-xs text-brand-200">Amount reached</div><div className="text-xl font-bold">{inrShort(n0.amount_inr)}</div></div>
-              <div><div className="text-xs text-brand-200">Complainant's share</div><div className="text-xl font-bold">{inrShort(n0.victim_attributable_inr)}</div></div>
-              <div>
-                <div className="text-xs text-brand-200">Confidence</div>
-                <div className="mt-1 flex items-center gap-2">
-                  <div className="h-2 w-20 overflow-hidden rounded-full bg-navy-700"><div className="h-full rounded-full bg-green-400" style={{ width: `${n0.confidence * 100}%` }} /></div>
-                  <span className="text-xl font-bold">{Math.round(n0.confidence * 100)}%</span>
-                </div>
-              </div>
-            </div>
-            <Link to={`/reports/${c.id}?tab=notice`} className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-navy-900 hover:bg-brand-50">
-              Draft notice <ArrowRight size={15} />
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <div className="mb-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-warn-ink">
-          <TriangleAlert size={20} className="shrink-0" />
-          <div><div className="font-semibold">No exchange reached yet</div>{inr(c.held_in_wallets_inr)} is still in layering wallets. The wallets are on the watchlist and RAAZ will alert you when funds move towards an exchange.</div>
-        </div>
-      )}
+      {/* the money trail - the one bold element on this page */}
+      {(() => {
+        const layering = d.nodes.filter((n) => n.role === 'intermediary').length
+        const cons = d.nodes.filter((n) => n.role === 'consolidation').length
+        const hasMixer = d.nodes.some((n) => n.role === 'mixer')
+        const hasBridge = d.nodes.some((n) => n.role === 'bridge')
+        const steps = [
+          { k: 'Victim paid', v: inr(c.amount_lost_inr), s: `${token(c.amount_lost_token, c.token)} in ${c.payments} payment(s)` },
+          { k: 'Reported wallet', v: <Address value={c.reported_wallet} head={6} tail={5} />, s: 'From the complaint' },
+          { k: 'Layering', v: `${layering} wallet${layering === 1 ? '' : 's'}`, s: [hasMixer && 'through a mixer', hasBridge && 'across a bridge', `${Math.max(...d.nodes.map((n) => n.hop))} hops deep`].filter(Boolean).join(', ') },
+          ...(cons ? [{ k: 'Merged again', v: `${cons} consolidation wallet${cons === 1 ? '' : 's'}`, s: 'Branches re-join before cash-out' }] : []),
+        ]
+        return (
+          <section aria-label="Money trail" className="mb-6 rounded-md border border-line bg-white px-5 py-5">
+            <h2 className="mb-4 text-lg font-semibold text-navy-900">Where the money went</h2>
+            <ol className="grid gap-5 md:grid-cols-[repeat(var(--n),minmax(0,1fr))_minmax(0,1.6fr)]" style={{ '--n': steps.length }}>
+              {steps.map((st) => (
+                <li key={st.k} className="relative border-t-2 border-navy-900 pt-3">
+                  <span className="absolute -top-[5px] left-0 size-2 rounded-full bg-navy-900" />
+                  <div className="text-xs text-ink-3">{st.k}</div>
+                  <div className="mt-0.5 font-cond text-lg font-semibold text-navy-900">{st.v}</div>
+                  <div className="text-xs text-ink-2">{st.s}</div>
+                </li>
+              ))}
+              {n0 ? (
+                <li className="relative border-t-[3px] border-stamp pt-3">
+                  <span className="absolute -top-[6px] left-0 size-2.5 rounded-full bg-stamp" />
+                  <div className="text-xs text-stamp-ink">Cash-out point, {n0.hops} hops from the reported wallet</div>
+                  <div className="mt-0.5 font-cond text-2xl leading-tight font-semibold text-navy-900">{n0.exchange}</div>
+                  <div className="flex items-center gap-1.5 text-xs text-ink-2">
+                    {n0.fiu_ind_registered ? <BadgeCheck size={13} className="text-good" /> : <Globe size={13} className="text-warn-ink" />}
+                    {n0.jurisdiction}, {n0.fiu_ind_registered ? 'registered with FIU-IND' : 'not registered in India'}
+                  </div>
+                  <dl className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                    <div><dt className="text-xs text-ink-3">Reached it</dt><dd className="tabular font-semibold text-ink">{inrShort(n0.amount_inr)}</dd></div>
+                    <div><dt className="text-xs text-ink-3">Victim's share</dt><dd className="tabular font-semibold text-ink">{inrShort(n0.victim_attributable_inr)}</dd></div>
+                    <div><dt className="text-xs text-ink-3">Match</dt><dd className="tabular font-semibold text-ink">{Math.round(n0.confidence * 100)}% probable</dd></div>
+                  </dl>
+                </li>
+              ) : (
+                <li className="relative border-t-[3px] border-stamp pt-3">
+                  <span className="absolute -top-[6px] left-0 size-2.5 rounded-full bg-stamp" />
+                  <div className="text-xs text-stamp-ink">No exchange reached yet</div>
+                  <div className="mt-0.5 font-cond text-2xl font-semibold text-navy-900">{inr(c.held_in_wallets_inr)} can still move</div>
+                  <div className="text-xs text-ink-2">The wallets are on the watchlist. RAAZ alerts you when money moves towards an exchange.</div>
+                </li>
+              )}
+            </ol>
+          </section>
+        )
+      })()}
 
       {/* cross-case link - same operator across complaints */}
       {c.linked_cases.length > 0 && (() => {
@@ -181,41 +196,41 @@ export default function Workspace() {
         const total = group.reduce((s, x) => s + (x.amount_lost_inr || 0), 0)
         const states = [...new Set(group.map((x) => x.state).filter(Boolean))]
         return (
-          <div className="mb-5 flex flex-wrap items-center gap-4 rounded-xl border-2 border-red-200 bg-red-50 p-4">
-            <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-critical text-white"><Layers size={22} /></div>
+          <section aria-label="Linked cases" className="mb-6 flex flex-wrap items-start gap-4 rounded-md border border-line border-l-[3px] border-l-stamp bg-white px-5 py-4">
+            <Layers size={20} className="mt-0.5 shrink-0 text-stamp" />
             <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-bold tracking-wider text-critical-ink uppercase">Cross-case link · {c.syndicate}</div>
-              <div className="text-base font-bold text-navy-900">
-                {group.length} complaints{states.length > 1 ? ` from ${states.length} states` : ''} share the same consolidation wallet - probably one operator
-              </div>
-              <div className="mt-0.5 text-sm text-ink-2">
-                {inr(total)} lost across these complaints. Coordinate one joint request to the exchange instead of {group.length} separate ones.
-              </div>
+              <h2 className="text-lg font-semibold text-navy-900">
+                Same operator in {group.length} complaints{states.length > 1 ? ` from ${states.length} states` : ''}
+              </h2>
+              <p className="mt-0.5 max-w-[80ch] text-sm text-ink-2">
+                These cases send money through the same consolidation wallet ({c.syndicate}). Together the victims lost {inr(total)}.
+                One joint request to the exchange covers all of them.
+              </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {c.linked_cases.map((x) => <Link key={x} to={`/cases/${x}`} className="rounded bg-white px-2 py-0.5 text-xs font-semibold text-critical-ink ring-1 ring-red-200 hover:underline">{x}</Link>)}
+                {c.linked_cases.map((x) => <Link key={x} to={`/cases/${x}`} className="rounded border border-line px-2 py-0.5 font-cond text-sm font-medium text-navy-900 hover:border-stamp hover:text-stamp-ink">{x}</Link>)}
               </div>
             </div>
-          </div>
+          </section>
         )
       })()}
 
-      {/* summary strip */}
-      <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      {/* key figures */}
+      <dl className="mb-6 grid grid-cols-2 border-y border-line md:grid-cols-3 xl:grid-cols-6">
         {[
-          ['Amount lost', inr(c.amount_lost_inr), `${token(c.amount_lost_token, c.token)} · ${c.payments} payment(s)`],
+          ['Victim lost', inr(c.amount_lost_inr), `${c.payments} payment(s)`],
           ['Wallets traced', c.wallets_traced, `${c.transactions_traced} transactions`],
-          ['Max hop depth', Math.max(...d.nodes.map((n) => n.hop)), NETWORKS[c.network].name],
-          ['Traced to VASPs', inrShort(c.traced_to_vasp_inr), `${d.attributions.length} exchange(s)`],
-          ['Held in wallets', inrShort(c.held_in_wallets_inr), 'Can still move'],
-          ['Frozen', inrShort(c.frozen_inr), c.frozen_inr ? 'At exchange' : 'Nothing frozen yet'],
-        ].map(([k, v, s]) => (
-          <div key={k} className="card px-4 py-3">
-            <div className="text-xs text-ink-3">{k}</div>
-            <div className="text-lg font-bold text-navy-900">{v}</div>
-            <div className="truncate text-[11px] text-ink-3">{s}</div>
+          ['Deepest hop', Math.max(...d.nodes.map((n) => n.hop)), NETWORKS[c.network].name],
+          ['At exchanges', inrShort(c.traced_to_vasp_inr), `${d.attributions.length} exchange(s)`],
+          ['Can still move', inrShort(c.held_in_wallets_inr), 'In suspect wallets'],
+          ['Frozen', inrShort(c.frozen_inr), c.frozen_inr ? 'At the exchange' : 'Nothing yet'],
+        ].map(([k, v, sub]) => (
+          <div key={k} className="border-line px-4 py-3 [&:not(:first-child)]:border-l">
+            <dt className="text-xs text-ink-3">{k}</dt>
+            <dd className="tabular font-cond text-xl font-semibold text-navy-900">{v}</dd>
+            <dd className="truncate text-xs text-ink-3">{sub}</dd>
           </div>
         ))}
-      </div>
+      </dl>
 
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       <div className="mt-5">
@@ -267,19 +282,6 @@ export default function Workspace() {
                 <div className="mt-3 text-xs text-ink-3">Complainant's wallet</div>
                 <Address value={c.victim_wallet} full />
               </Card>
-              {c.linked_cases.length > 0 ? (
-                <Card title="Cross-case link" subtitle={`${c.syndicate}: same consolidation wallet`}>
-                  <div className="flex items-start gap-2 text-sm text-critical-ink">
-                    <Layers size={16} className="mt-0.5 shrink-0" />
-                    <div>
-                      Linked to {c.linked_cases.length} other case(s). These are probably the same operator.
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">{c.linked_cases.map((x) => <Link key={x} to={`/cases/${x}`} className="rounded bg-red-50 px-2 py-0.5 text-xs font-semibold hover:underline">{x}</Link>)}</div>
-                    </div>
-                  </div>
-                </Card>
-              ) : (
-                <Card title="Cross-case link"><div className="text-sm text-ink-3">No other RAAZ case shares wallets with this one.</div></Card>
-              )}
             </div>
           </div>
         )}
@@ -292,7 +294,7 @@ export default function Workspace() {
         {tab === 'risk' && <RiskTab d={d} />}
         {tab === 'timeline' && <TimelineTab d={d} />}
       </div>
-      <p className="mt-6 text-xs text-ink-3">Case description: {c.description}</p>
+      <p className="mt-6 max-w-[80ch] text-sm text-ink-2"><span className="text-ink-3">Complaint summary:</span> {c.description}</p>
     </>
   )
 }
