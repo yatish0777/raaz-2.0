@@ -139,52 +139,103 @@ export default function Workspace() {
 
       {/* the money trail - the one bold element on this page */}
       {(() => {
+        const tx = d.transactions
+        const first = (pred) => tx.filter(pred).map((t) => t.timestamp).sort()[0]
+        const suspect = d.nodes.find((n) => n.role === 'suspect')
+        const consNodes = d.nodes.filter((n) => n.role === 'consolidation')
         const layering = d.nodes.filter((n) => n.role === 'intermediary').length
-        const cons = d.nodes.filter((n) => n.role === 'consolidation').length
         const hasMixer = d.nodes.some((n) => n.role === 'mixer')
         const hasBridge = d.nodes.some((n) => n.role === 'bridge')
+        const deepest = Math.max(...d.nodes.map((n) => n.hop))
+        const tPaid = first((t) => t.kind === 'victim_payment')
+        const tOut = first((t) => t.from_address === suspect?.address)
+        const tCons = consNodes.length ? first((t) => consNodes.some((n) => n.address === t.to_address)) : null
+        const tEx = first((t) => t.kind === 'exchange_deposit' && n0?.deposit_addresses.includes(t.to_address))
+        const gap = (a, b) => {
+          if (!a || !b) return null
+          const m = Math.max(0, Math.round((new Date(b) - new Date(a)) / 60000))
+          if (m < 60) return `${m} min`
+          const h = Math.floor(m / 60)
+          if (h < 48) return `${h} h ${m % 60} min`
+          return `${Math.floor(h / 24)} days ${h % 24} h`
+        }
+        const when = (iso) => iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }) : null
         const steps = [
-          { k: 'Victim paid', v: inr(c.amount_lost_inr), s: `${token(c.amount_lost_token, c.token)} in ${c.payments} payment(s)` },
-          { k: 'Reported wallet', v: <Address value={c.reported_wallet} head={6} tail={5} />, s: 'From the complaint' },
-          { k: 'Layering', v: `${layering} wallet${layering === 1 ? '' : 's'}`, s: [hasMixer && 'through a mixer', hasBridge && 'across a bridge', `${Math.max(...d.nodes.map((n) => n.hop))} hops deep`].filter(Boolean).join(', ') },
-          ...(cons ? [{ k: 'Merged again', v: `${cons} consolidation wallet${cons === 1 ? '' : 's'}`, s: 'Branches re-join before cash-out' }] : []),
+          { k: 'Victim paid', v: inr(c.amount_lost_inr), s: `${token(c.amount_lost_token, c.token)}, ${c.payments} payment${c.payments === 1 ? '' : 's'}`, t: tPaid },
+          { k: 'Reported wallet', v: <Address value={c.reported_wallet} head={6} tail={5} />, s: suspect ? `Received ${inrShort(suspect.in_inr)} in total` : 'From the complaint', t: tOut, tLabel: 'sent onward' },
+          { k: 'Layering', v: `${layering} wallet${layering === 1 ? '' : 's'}`, s: [`${deepest} hops deep`, hasMixer && 'via a mixer', hasBridge && 'across a bridge'].filter(Boolean).join(', ') },
+          ...(consNodes.length ? [{ k: 'Merged again', v: `${consNodes.length} wallet${consNodes.length === 1 ? '' : 's'}`, s: `Collected ${inrShort(consNodes.reduce((t, n) => t + n.in_inr, 0))}`, t: tCons }] : []),
         ]
+        const total = gap(tPaid, tEx)
+        const others = n0 && n0.amount_inr > n0.victim_attributable_inr * 1.05
         return (
-          <section aria-label="Money trail" className="mb-6 rounded-md border border-line bg-white px-5 py-5">
-            <h2 className="mb-4 text-lg font-semibold text-navy-900">Where the money went</h2>
-            <ol className="grid gap-5 md:grid-cols-[repeat(var(--n),minmax(0,1fr))_minmax(0,1.6fr)]" style={{ '--n': steps.length }}>
+          <section aria-labelledby="trail-h" className="mb-6 overflow-hidden rounded-md border border-line bg-white">
+            <div className="flex flex-wrap items-baseline justify-between gap-3 px-6 pt-5">
+              <h2 id="trail-h" className="text-xl font-semibold text-navy-900">Where the money went</h2>
+              {total ? (
+                <p className="text-sm text-ink-2">
+                  Reached the exchange <b className="font-cond text-lg font-semibold text-stamp-ink">{total}</b> after the victim paid
+                </p>
+              ) : !n0 && <p className="text-sm text-ink-2">Not at an exchange yet</p>}
+            </div>
+
+            <ol className="grid grid-cols-1 px-6 pt-5 pb-6 md:grid-cols-[repeat(var(--n),minmax(0,1fr))_minmax(0,1.35fr)]" style={{ '--n': steps.length }}>
               {steps.map((st) => (
-                <li key={st.k} className="relative border-t-2 border-navy-900 pt-3">
-                  <span className="absolute -top-[5px] left-0 size-2 rounded-full bg-navy-900" />
-                  <div className="text-xs text-ink-3">{st.k}</div>
-                  <div className="mt-0.5 font-cond text-lg font-semibold text-navy-900">{st.v}</div>
-                  <div className="text-xs text-ink-2">{st.s}</div>
+                <li key={st.k} className="relative border-l-2 border-navy-900/70 pb-5 pl-5 md:border-t-2 md:border-l-0 md:pt-4 md:pr-5 md:pb-0 md:pl-0">
+                  <span className="absolute top-0 -left-[6px] size-2.5 rounded-full border-2 border-white bg-navy-900 md:-top-[6px] md:left-0" />
+                  <svg aria-hidden="true" viewBox="0 0 8 10" className="absolute hidden size-2.5 fill-navy-900/70 md:-top-[6px] md:right-1 md:block"><path d="M0 0l8 5-8 5z" /></svg>
+                  <div className="text-[13px] text-ink-3">{st.k}</div>
+                  <div className="mt-0.5 font-cond text-xl leading-snug font-semibold text-navy-900">{st.v}</div>
+                  <div className="mt-0.5 text-[13px] text-ink-2">{st.s}</div>
+                  {st.t && <div className="mt-1.5 text-xs text-ink-3 tabular">{st.tLabel ? `${st.tLabel} ` : ''}{when(st.t)}</div>}
                 </li>
               ))}
-              {n0 ? (
-                <li className="relative border-t-[3px] border-stamp pt-3">
-                  <span className="absolute -top-[6px] left-0 size-2.5 rounded-full bg-stamp" />
-                  <div className="text-xs text-stamp-ink">Cash-out point, {n0.hops} hops from the reported wallet</div>
-                  <div className="mt-0.5 font-cond text-2xl leading-tight font-semibold text-navy-900">{n0.exchange}</div>
-                  <div className="flex items-center gap-1.5 text-xs text-ink-2">
-                    {n0.fiu_ind_registered ? <BadgeCheck size={13} className="text-good" /> : <Globe size={13} className="text-warn-ink" />}
-                    {n0.jurisdiction}, {n0.fiu_ind_registered ? 'registered with FIU-IND' : 'not registered in India'}
-                  </div>
-                  <dl className="mt-3 grid grid-cols-3 gap-3 text-sm">
-                    <div><dt className="text-xs text-ink-3">Reached it</dt><dd className="tabular font-semibold text-ink">{inrShort(n0.amount_inr)}</dd></div>
-                    <div><dt className="text-xs text-ink-3">Victim's share</dt><dd className="tabular font-semibold text-ink">{inrShort(n0.victim_attributable_inr)}</dd></div>
-                    <div><dt className="text-xs text-ink-3">Probable match</dt><dd className="tabular font-semibold text-ink">{Math.round(n0.confidence * 100)}%</dd></div>
-                  </dl>
-                </li>
-              ) : (
-                <li className="relative border-t-[3px] border-stamp pt-3">
-                  <span className="absolute -top-[6px] left-0 size-2.5 rounded-full bg-stamp" />
-                  <div className="text-xs text-stamp-ink">No exchange reached yet</div>
-                  <div className="mt-0.5 font-cond text-2xl font-semibold text-navy-900">{inr(c.held_in_wallets_inr)} can still move</div>
-                  <div className="text-xs text-ink-2">The wallets are on the watchlist. RAAZ alerts you when money moves towards an exchange.</div>
-                </li>
-              )}
+              <li className={`relative border-l-[3px] pl-5 md:border-t-[3px] md:border-l-0 md:pt-4 md:pl-0 ${n0 ? 'border-stamp' : 'border-dashed border-warn'}`}>
+                <span className={`absolute top-0 -left-[7px] size-3 rotate-45 md:-top-[7.5px] md:left-0 ${n0 ? 'bg-stamp' : 'bg-warn'}`} />
+                {n0 ? (
+                  <>
+                    <div className="text-[13px] text-stamp-ink">Cash-out point, {n0.hops} hops from the reported wallet</div>
+                    <div className="mt-0.5 font-cond text-[28px] leading-tight font-semibold text-navy-900">{n0.exchange}</div>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-ink-2">
+                      {n0.fiu_ind_registered ? <BadgeCheck size={14} className="text-good" /> : <Globe size={14} className="text-warn-ink" />}
+                      {n0.jurisdiction}, {n0.fiu_ind_registered ? 'registered with FIU-IND' : 'not registered in India'}
+                    </div>
+                    {tEx && <div className="mt-1.5 text-xs text-ink-3 tabular">deposited {when(tEx)}</div>}
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[13px] text-warn-ink">No exchange reached yet</div>
+                    <div className="mt-0.5 font-cond text-[26px] leading-tight font-semibold text-navy-900">{inrShort(c.held_in_wallets_inr)} can still move</div>
+                    <div className="mt-0.5 text-[13px] text-ink-2">These wallets are on the watchlist. You get an alert when money moves towards an exchange.</div>
+                  </>
+                )}
+              </li>
             </ol>
+
+            {n0 && (
+              <div className="flex flex-wrap items-center gap-x-10 gap-y-3 border-t border-line bg-page/60 px-6 py-4">
+                <div>
+                  <div className="text-xs text-ink-3">Reached {n0.exchange}</div>
+                  <div className="tabular font-cond text-xl font-semibold text-navy-900">{inr(n0.amount_inr)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-ink-3">This victim's share to freeze</div>
+                  <div className="tabular font-cond text-xl font-semibold text-stamp-ink">{inr(n0.victim_attributable_inr)}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-ink-3">Probable match</div>
+                  <div className="flex items-center gap-2">
+                    <span className="tabular font-cond text-xl font-semibold text-navy-900">{Math.round(n0.confidence * 100)}%</span>
+                    <span className="h-1.5 w-16 overflow-hidden rounded-sm bg-line"><span className="block h-full bg-brand-600" style={{ width: `${n0.confidence * 100}%` }} /></span>
+                  </div>
+                </div>
+                {others && (
+                  <p className="max-w-[46ch] flex-1 text-xs leading-relaxed text-ink-3">
+                    More money reached the exchange than this victim lost, because other senders paid into the same wallets. The share is split in proportion to what each one paid.
+                  </p>
+                )}
+              </div>
+            )}
           </section>
         )
       })()}
