@@ -12,6 +12,7 @@ import {
 import TxGraph, { RoleGlyph } from '../components/TxGraph'
 import NxTab from './workspace/NxTab'
 import { AttributionTab, ClustersTab, FundFlowTab, PatternsTab, RiskTab, TimelineTab, TransactionsTab } from './workspace/tabs'
+import { dateLocale, t, tMessage } from '../i18n'
 
 /** Wallets on any path from the reported wallet to the nearest exchange (+ its hot-wallet sweep) */
 function pathToNearest(d) {
@@ -40,26 +41,26 @@ function NodePanel({ node, d, onClose }) {
     <div className="slide-in space-y-3">
       <div className="flex items-center justify-between">
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-navy-900"><RoleGlyph role={node.role} /> {ROLES[node.role].label}</span>
-        <button onClick={onClose} className={btn.ghost}>Close</button>
+        <button onClick={onClose} className={btn.ghost}>{t('Close')}</button>
       </div>
       {node.entity && <div className="rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700">{node.entity}</div>}
-      <div className="text-xs text-ink-3">{node.label}</div>
+      <div className="text-xs text-ink-3">{tMessage(node.label)}</div>
       <div className="rounded-lg bg-slate-50 p-2.5 font-mono text-[11.5px] break-all text-ink">{node.address}</div>
       <dl className="grid grid-cols-2 gap-y-1.5 text-sm">
-        <dt className="text-ink-3">Network</dt><dd className="text-right"><NetworkBadge network={node.network} /></dd>
-        <dt className="text-ink-3">Hop</dt><dd className="text-right font-semibold">{node.hop < 0 ? 'Source' : node.hop}</dd>
-        <dt className="text-ink-3">Received</dt><dd className="text-right font-semibold">{inrShort(node.in_inr)}</dd>
-        <dt className="text-ink-3">Sent</dt><dd className="text-right font-semibold">{inrShort(node.out_inr)}</dd>
-        {node.balance != null && <><dt className="text-ink-3">Balance left</dt><dd className="text-right font-semibold">{token(node.balance, tok)}</dd></>}
-        <dt className="text-ink-3">Transactions</dt><dd className="text-right">{node.tx_count}</dd>
-        <dt className="text-ink-3">First seen</dt><dd className="text-right text-xs">{dt(node.first_seen)}</dd>
-        <dt className="text-ink-3">Last seen</dt><dd className="text-right text-xs">{dt(node.last_seen)}</dd>
-        {node.cluster_id && <><dt className="text-ink-3">Cluster</dt><dd className="text-right font-mono text-xs">{node.cluster_id}</dd></>}
-        {node.ml_laundering_prob != null && <><dt className="text-ink-3">Laundering prob. (ML)</dt><dd className="text-right font-semibold">{Math.round(node.ml_laundering_prob * 100)}%</dd></>}
-        {node.anomaly_pct != null && <><dt className="text-ink-3">Anomaly (vs all wallets)</dt><dd className="text-right font-semibold">{Math.round(node.anomaly_pct)}th pct</dd></>}
+        <dt className="text-ink-3">{t('Network')}</dt><dd className="text-right"><NetworkBadge network={node.network} /></dd>
+        <dt className="text-ink-3">{t('Hop')}</dt><dd className="text-right font-semibold">{node.hop < 0 ? t('Source') : node.hop}</dd>
+        <dt className="text-ink-3">{t('Received')}</dt><dd className="text-right font-semibold">{inrShort(node.in_inr)}</dd>
+        <dt className="text-ink-3">{t('Sent')}</dt><dd className="text-right font-semibold">{inrShort(node.out_inr)}</dd>
+        {node.balance != null && <><dt className="text-ink-3">{t('Balance left')}</dt><dd className="text-right font-semibold">{token(node.balance, tok)}</dd></>}
+        <dt className="text-ink-3">{t('Transactions')}</dt><dd className="text-right">{node.tx_count}</dd>
+        <dt className="text-ink-3">{t('First seen')}</dt><dd className="text-right text-xs">{dt(node.first_seen)}</dd>
+        <dt className="text-ink-3">{t('Last seen')}</dt><dd className="text-right text-xs">{dt(node.last_seen)}</dd>
+        {node.cluster_id && <><dt className="text-ink-3">{t('Cluster')}</dt><dd className="text-right font-mono text-xs">{node.cluster_id}</dd></>}
+        {node.ml_laundering_prob != null && <><dt className="text-ink-3">{t('Laundering prob. (ML)')}</dt><dd className="text-right font-semibold">{Math.round(node.ml_laundering_prob * 100)}%</dd></>}
+        {node.anomaly_pct != null && <><dt className="text-ink-3">{t('Anomaly (vs all wallets)')}</dt><dd className="text-right font-semibold">{t('{n}th pct', { n: Math.round(node.anomaly_pct) })}</dd></>}
       </dl>
       <div className="flex flex-col gap-2 pt-1">
-        <Link to={`/wallets/${node.address}`} className={btn.secondary}>Open wallet profile <ArrowRight size={14} /></Link>
+        <Link to={`/wallets/${node.address}`} className={btn.secondary}>{t('Open wallet profile')} <ArrowRight size={14} /></Link>
         {!['victim', 'exchange_hot', 'mixer', 'bridge'].includes(node.role) && (
           <button
             className={btn.secondary}
@@ -69,7 +70,7 @@ function NodePanel({ node, d, onClose }) {
               setAdded(true)
             }}
           >
-            <Radar size={14} /> {added ? 'Added to watchlist' : 'Add to watchlist'}
+            <Radar size={14} /> {added ? t('Added to watchlist') : t('Add to watchlist')}
           </button>
         )}
       </div>
@@ -89,22 +90,22 @@ export default function Workspace() {
   const path = useMemo(() => (d ? pathToNearest(d) : new Set()), [d])
   const rolesPresent = useMemo(() => (d ? Object.keys(ROLES).filter((r) => d.nodes.some((n) => n.role === r)) : []), [d])
 
-  if (loading) return <Loading label="Loading investigation…" />
+  if (loading) return <Loading label={t('Loading investigation…')} />
   if (error) return <ErrorBox error={error} />
   const c = d.case
   const n0 = d.attributions[0]
   const selNode = sel && d.nodes.find((n) => n.address === sel.address)
 
   const TABS = [
-    { id: 'graph', label: 'Transaction graph', icon: Waypoints },
-    { id: 'nx', label: 'NetworkX analysis', icon: Network },
-    { id: 'flow', label: 'Fund flow', icon: Route },
-    { id: 'tx', label: 'Transactions', icon: TableProperties, count: d.transactions.length },
-    { id: 'patterns', label: 'Patterns', icon: ScanSearch, count: d.patterns.length },
-    { id: 'clusters', label: 'Wallet clusters', icon: Users, count: d.clusters.length },
-    { id: 'attr', label: 'Exchange attribution', icon: Building2, count: d.attributions.length },
-    { id: 'risk', label: 'Risk score', icon: Gauge },
-    { id: 'timeline', label: 'Timeline & legal', icon: Clock },
+    { id: 'graph', label: t('Transaction graph'), icon: Waypoints },
+    { id: 'nx', label: t('NetworkX analysis'), icon: Network },
+    { id: 'flow', label: t('Fund flow'), icon: Route },
+    { id: 'tx', label: t('Transactions'), icon: TableProperties, count: d.transactions.length },
+    { id: 'patterns', label: t('Patterns'), icon: ScanSearch, count: d.patterns.length },
+    { id: 'clusters', label: t('Wallet clusters'), icon: Users, count: d.clusters.length },
+    { id: 'attr', label: t('Exchange attribution'), icon: Building2, count: d.attributions.length },
+    { id: 'risk', label: t('Risk score'), icon: Gauge },
+    { id: 'timeline', label: t('Timeline & legal'), icon: Clock },
   ]
 
   return (
@@ -113,10 +114,10 @@ export default function Workspace() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 text-sm text-ink-3">
-            <Link to="/cases" className="hover:text-ink hover:underline">Cases</Link>
+            <Link to="/cases" className="hover:text-ink hover:underline">{t('Cases')}</Link>
             <span aria-hidden="true">/</span>
-            <span>{c.fraud_type}</span>
-            {c.demo_generated && <span className="rounded bg-violet-50 px-1.5 py-0.5 text-xs font-semibold text-violet-700">Demo-generated result</span>}
+            <span>{t(c.fraud_type)}</span>
+            {c.demo_generated && <span className="rounded bg-violet-50 px-1.5 py-0.5 text-xs font-semibold text-violet-700">{t('Demo-generated result')}</span>}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-[38px] leading-none font-semibold tracking-tight text-navy-900">{c.id}</h1>
@@ -125,15 +126,15 @@ export default function Workspace() {
             <RiskBadge level={c.risk_level} score={c.risk_score} />
           </div>
           <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm">
-            <div className="flex gap-1.5"><dt className="text-ink-3">NCRP ack.</dt><dd className="tabular text-ink">{c.ncrp_ack}</dd></div>
-            <div className="flex gap-1.5"><dt className="text-ink-3">Place</dt><dd className="text-ink">{c.district}, {c.state}</dd></div>
-            <div className="flex gap-1.5"><dt className="text-ink-3">Officer</dt><dd className="text-ink">{c.investigator}</dd></div>
-            <div className="flex items-center gap-1.5"><dt className="text-ink-3">Chain</dt><dd><NetworkBadge network={c.network} long /></dd></div>
+            <div className="flex gap-1.5"><dt className="text-ink-3">{t('NCRP ack.')}</dt><dd className="tabular text-ink">{c.ncrp_ack}</dd></div>
+            <div className="flex gap-1.5"><dt className="text-ink-3">{t('Place')}</dt><dd className="text-ink">{c.district}, {c.state}</dd></div>
+            <div className="flex gap-1.5"><dt className="text-ink-3">{t('Officer')}</dt><dd className="text-ink">{c.investigator}</dd></div>
+            <div className="flex items-center gap-1.5"><dt className="text-ink-3">{t('Chain')}</dt><dd><NetworkBadge network={c.network} long /></dd></div>
           </dl>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to={`/reports/${c.id}`} className={btn.secondary}><FileText size={16} /> Investigation report</Link>
-          {n0 && <Link to={`/reports/${c.id}?tab=notice`} className={btn.primary}>Draft notice to {n0.exchange}</Link>}
+          <Link to={`/reports/${c.id}`} className={btn.secondary}><FileText size={16} /> {t('Investigation report')}</Link>
+          {n0 && <Link to={`/reports/${c.id}?tab=notice`} className={btn.primary}>{t('Draft notice to {ex}', { ex: n0.exchange })}</Link>}
         </div>
       </div>
 
@@ -154,29 +155,29 @@ export default function Workspace() {
         const gap = (a, b) => {
           if (!a || !b) return null
           const m = Math.max(0, Math.round((new Date(b) - new Date(a)) / 60000))
-          if (m < 60) return `${m} min`
+          if (m < 60) return t('{m} min', { m })
           const h = Math.floor(m / 60)
-          if (h < 48) return `${h} h ${m % 60} min`
-          return `${Math.floor(h / 24)} days ${h % 24} h`
+          if (h < 48) return t('{h} h {m} min', { h, m: m % 60 })
+          return t('{d} days {h} h', { d: Math.floor(h / 24), h: h % 24 })
         }
-        const when = (iso) => iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }) : null
+        const when = (iso) => iso ? new Date(iso).toLocaleString(dateLocale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }) : null
         const steps = [
-          { k: 'Victim paid', v: inr(c.amount_lost_inr), s: `${token(c.amount_lost_token, c.token)}, ${c.payments} payment${c.payments === 1 ? '' : 's'}`, t: tPaid },
-          { k: 'Reported wallet', v: <Address value={c.reported_wallet} head={6} tail={5} />, s: suspect ? `Received ${inrShort(suspect.in_inr)} in total` : 'From the complaint', t: tOut, tLabel: 'sent onward' },
-          { k: 'Layering', v: `${layering} wallet${layering === 1 ? '' : 's'}`, s: [`${deepest} hops deep`, hasMixer && 'via a mixer', hasBridge && 'across a bridge'].filter(Boolean).join(', ') },
-          ...(consNodes.length ? [{ k: 'Merged again', v: `${consNodes.length} wallet${consNodes.length === 1 ? '' : 's'}`, s: `Collected ${inrShort(consNodes.reduce((t, n) => t + n.in_inr, 0))}`, t: tCons }] : []),
+          { k: t('Victim paid'), v: inr(c.amount_lost_inr), s: `${token(c.amount_lost_token, c.token)}, ${c.payments === 1 ? t('1 payment') : t('{n} payments', { n: c.payments })}`, t: tPaid },
+          { k: t('Reported wallet'), v: <Address value={c.reported_wallet} head={6} tail={5} />, s: suspect ? t('Received {amt} in total', { amt: inrShort(suspect.in_inr) }) : t('From the complaint'), t: tOut, tLabel: t('sent onward') },
+          { k: t('Layering'), v: layering === 1 ? t('1 wallet') : t('{n} wallets', { n: layering }), s: [t('{n} hops deep', { n: deepest }), hasMixer && t('via a mixer'), hasBridge && t('across a bridge')].filter(Boolean).join(', ') },
+          ...(consNodes.length ? [{ k: t('Merged again'), v: consNodes.length === 1 ? t('1 wallet') : t('{n} wallets', { n: consNodes.length }), s: t('Collected {amt}', { amt: inrShort(consNodes.reduce((s, n) => s + n.in_inr, 0)) }), t: tCons }] : []),
         ]
         const total = gap(tPaid, tEx)
         const others = n0 && n0.amount_inr > n0.victim_attributable_inr * 1.05
         return (
           <section aria-labelledby="trail-h" className="mb-6 overflow-hidden rounded-md border border-line bg-white">
             <div className="flex flex-wrap items-baseline justify-between gap-3 px-6 pt-5">
-              <h2 id="trail-h" className="text-xl font-semibold text-navy-900">Where the money went</h2>
+              <h2 id="trail-h" className="text-xl font-semibold text-navy-900">{t('Where the money went')}</h2>
               {total ? (
                 <p className="text-sm text-ink-2">
-                  Reached the exchange <b className="font-cond text-lg font-semibold text-stamp-ink">{total}</b> after the victim paid
+                  {t('Reached the exchange')} <b className="font-cond text-lg font-semibold text-stamp-ink">{total}</b> {t('after the victim paid')}
                 </p>
-              ) : !n0 && <p className="text-sm text-ink-2">Not at an exchange yet</p>}
+              ) : !n0 && <p className="text-sm text-ink-2">{t('Not at an exchange yet')}</p>}
             </div>
 
             <ol className="grid grid-cols-1 px-6 pt-5 pb-6 md:grid-cols-[repeat(var(--n),minmax(0,1fr))_minmax(0,1.35fr)]" style={{ '--n': steps.length }}>
@@ -194,19 +195,19 @@ export default function Workspace() {
                 <span className={`absolute top-0 -left-[7px] size-3 rotate-45 md:-top-[7.5px] md:left-0 ${n0 ? 'bg-stamp' : 'bg-warn'}`} />
                 {n0 ? (
                   <>
-                    <div className="text-[13px] text-stamp-ink">Cash-out point, {n0.hops} hops from the reported wallet</div>
+                    <div className="text-[13px] text-stamp-ink">{t('Cash-out point, {n} hops from the reported wallet', { n: n0.hops })}</div>
                     <div className="mt-0.5 font-cond text-[28px] leading-tight font-semibold text-navy-900">{n0.exchange}</div>
                     <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-ink-2">
                       {n0.fiu_ind_registered ? <BadgeCheck size={14} className="text-good" /> : <Globe size={14} className="text-warn-ink" />}
-                      {n0.jurisdiction}, {n0.fiu_ind_registered ? 'registered with FIU-IND' : 'not registered in India'}
+                      {t(n0.jurisdiction)}, {n0.fiu_ind_registered ? t('registered with FIU-IND') : t('not registered in India')}
                     </div>
-                    {tEx && <div className="mt-1.5 text-xs text-ink-3 tabular">deposited {when(tEx)}</div>}
+                    {tEx && <div className="mt-1.5 text-xs text-ink-3 tabular">{t('deposited')} {when(tEx)}</div>}
                   </>
                 ) : (
                   <>
-                    <div className="text-[13px] text-warn-ink">No exchange reached yet</div>
-                    <div className="mt-0.5 font-cond text-[26px] leading-tight font-semibold text-navy-900">{inrShort(c.held_in_wallets_inr)} can still move</div>
-                    <div className="mt-0.5 text-[13px] text-ink-2">These wallets are on the watchlist. You get an alert when money moves towards an exchange.</div>
+                    <div className="text-[13px] text-warn-ink">{t('No exchange reached yet')}</div>
+                    <div className="mt-0.5 font-cond text-[26px] leading-tight font-semibold text-navy-900">{t('{amt} can still move', { amt: inrShort(c.held_in_wallets_inr) })}</div>
+                    <div className="mt-0.5 text-[13px] text-ink-2">{t('These wallets are on the watchlist. You get an alert when money moves towards an exchange.')}</div>
                   </>
                 )}
               </li>
@@ -215,15 +216,15 @@ export default function Workspace() {
             {n0 && (
               <div className="flex flex-wrap items-center gap-x-10 gap-y-3 border-t border-line bg-page/60 px-6 py-4">
                 <div>
-                  <div className="text-xs text-ink-3">Reached {n0.exchange}</div>
+                  <div className="text-xs text-ink-3">{t('Reached {ex}', { ex: n0.exchange })}</div>
                   <div className="tabular font-cond text-xl font-semibold text-navy-900">{inr(n0.amount_inr)}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-ink-3">This victim's share to freeze</div>
+                  <div className="text-xs text-ink-3">{t("This victim's share to freeze")}</div>
                   <div className="tabular font-cond text-xl font-semibold text-stamp-ink">{inr(n0.victim_attributable_inr)}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-ink-3">Probable match</div>
+                  <div className="text-xs text-ink-3">{t('Probable match')}</div>
                   <div className="flex items-center gap-2">
                     <span className="tabular font-cond text-xl font-semibold text-navy-900">{Math.round(n0.confidence * 100)}%</span>
                     <span className="h-1.5 w-16 overflow-hidden rounded-sm bg-line"><span className="block h-full bg-brand-600" style={{ width: `${n0.confidence * 100}%` }} /></span>
@@ -231,7 +232,7 @@ export default function Workspace() {
                 </div>
                 {others && (
                   <p className="max-w-[46ch] flex-1 text-xs leading-relaxed text-ink-3">
-                    More money reached the exchange than this victim lost, because other senders paid into the same wallets. The share is split in proportion to what each one paid.
+                    {t('More money reached the exchange than this victim lost, because other senders paid into the same wallets. The share is split in proportion to what each one paid.')}
                   </p>
                 )}
               </div>
@@ -247,15 +248,15 @@ export default function Workspace() {
         const total = group.reduce((s, x) => s + (x.amount_lost_inr || 0), 0)
         const states = [...new Set(group.map((x) => x.state).filter(Boolean))]
         return (
-          <section aria-label="Linked cases" className="mb-6 flex flex-wrap items-start gap-4 rounded-md border border-line border-l-[3px] border-l-stamp bg-white px-5 py-4">
+          <section aria-label={t('Linked cases')} className="mb-6 flex flex-wrap items-start gap-4 rounded-md border border-line border-l-[3px] border-l-stamp bg-white px-5 py-4">
             <Layers size={20} className="mt-0.5 shrink-0 text-stamp" />
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold text-navy-900">
-                Same operator in {group.length} complaints{states.length > 1 ? ` from ${states.length} states` : ''}
+                {t('Same operator in {n} complaints', { n: group.length })}{states.length > 1 ? t(' from {n} states', { n: states.length }) : ''}
               </h2>
               <p className="mt-0.5 max-w-[80ch] text-sm text-ink-2">
-                These cases send money through the same consolidation wallet ({c.syndicate}). Together the victims lost {inr(total)}.
-                One joint request to the exchange covers all of them.
+                {t('These cases send money through the same consolidation wallet ({syn}). Together the victims lost {amt}.', { syn: c.syndicate, amt: inr(total) })}
+                {' '}{t('One joint request to the exchange covers all of them.')}
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {c.linked_cases.map((x) => <Link key={x} to={`/cases/${x}`} className="rounded border border-line px-2 py-0.5 font-cond text-sm font-medium text-navy-900 hover:border-stamp hover:text-stamp-ink">{x}</Link>)}
@@ -268,12 +269,12 @@ export default function Workspace() {
       {/* key figures */}
       <dl className="mb-6 grid grid-cols-2 border-y border-line md:grid-cols-3 xl:grid-cols-6">
         {[
-          ['Victim lost', inr(c.amount_lost_inr), `${c.payments} payment(s)`],
-          ['Wallets traced', c.wallets_traced, `${c.transactions_traced} transactions`],
-          ['Deepest hop', Math.max(...d.nodes.map((n) => n.hop)), NETWORKS[c.network].name],
-          ['At exchanges', inrShort(c.traced_to_vasp_inr), `${d.attributions.length} exchange(s)`],
-          ['Can still move', inrShort(c.held_in_wallets_inr), 'In suspect wallets'],
-          ['Frozen', inrShort(c.frozen_inr), c.frozen_inr ? 'At the exchange' : 'Nothing yet'],
+          [t('Victim lost'), inr(c.amount_lost_inr), t('{n} payment(s)', { n: c.payments })],
+          [t('Wallets traced'), c.wallets_traced, t('{n} transactions', { n: c.transactions_traced })],
+          [t('Deepest hop'), Math.max(...d.nodes.map((n) => n.hop)), NETWORKS[c.network].name],
+          [t('At exchanges'), inrShort(c.traced_to_vasp_inr), t('{n} exchange(s)', { n: d.attributions.length })],
+          [t('Can still move'), inrShort(c.held_in_wallets_inr), t('In suspect wallets')],
+          [t('Frozen'), inrShort(c.frozen_inr), c.frozen_inr ? t('At the exchange') : t('Nothing yet')],
         ].map(([k, v, sub]) => (
           <div key={k} className="border-line px-4 py-3 [&:not(:first-child)]:border-l">
             <dt className="text-xs text-ink-3">{k}</dt>
@@ -290,12 +291,12 @@ export default function Workspace() {
             <Card pad={false}>
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2.5">
                 <div className="flex items-center gap-2 text-sm text-ink-2">
-                  <GitBranch size={15} /> {d.nodes.length} wallets · {d.transactions.length} transactions · left to right = hops away from the reported wallet
+                  <GitBranch size={15} /> {t('{a} wallets · {b} transactions · left to right = hops away from the reported wallet', { a: d.nodes.length, b: d.transactions.length })}
                 </div>
                 {n0 && (
                   <label className="flex items-center gap-2 text-sm font-medium text-ink">
                     <input type="checkbox" className="size-4 accent-brand-600" checked={showPath} onChange={(e) => setShowPath(e.target.checked)} />
-                    Highlight path to {n0.exchange}
+                    {t('Highlight path to {ex}', { ex: n0.exchange })}
                   </label>
                 )}
               </div>
@@ -303,9 +304,9 @@ export default function Workspace() {
                 {rolesPresent.map((r) => (
                   <li key={r} className="flex items-center gap-1.5"><RoleGlyph role={r} size={12} /> {ROLES[r].label}</li>
                 ))}
-                <li className="flex items-center gap-1.5"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#7b8699" strokeWidth="2" strokeDasharray="4 3" /></svg> Probabilistic link (mixer)</li>
-                <li className="flex items-center gap-1.5"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#1d4ed8" strokeWidth="3" /></svg> Path to nearest exchange</li>
-                <li className="text-ink-3">Line thickness = value</li>
+                <li className="flex items-center gap-1.5"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#7b8699" strokeWidth="2" strokeDasharray="4 3" /></svg> {t('Probabilistic link (mixer)')}</li>
+                <li className="flex items-center gap-1.5"><svg width="20" height="6"><line x1="0" y1="3" x2="20" y2="3" stroke="#1d4ed8" strokeWidth="3" /></svg> {t('Path to nearest exchange')}</li>
+                <li className="text-ink-3">{t('Line thickness = value')}</li>
               </ul>
               <div className="relative">
                 <TxGraph
@@ -322,15 +323,15 @@ export default function Workspace() {
                   </div>
                 ) : (
                   <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-xs text-ink-2 shadow-sm ring-1 ring-line">
-                    <Activity size={13} /> Click a wallet for details · hover to see its counterparties · Ctrl + scroll to zoom · drag to pan
+                    <Activity size={13} /> {t('Click a wallet for details · hover to see its counterparties · Ctrl + scroll to zoom · drag to pan')}
                   </div>
                 )}
               </div>
             </Card>
             <div className="grid gap-5 md:grid-cols-2">
-              <Card title="Reported wallet">
+              <Card title={t('Reported wallet')}>
                 <Address value={c.reported_wallet} full />
-                <div className="mt-3 text-xs text-ink-3">Complainant's wallet</div>
+                <div className="mt-3 text-xs text-ink-3">{t("Complainant's wallet")}</div>
                 <Address value={c.victim_wallet} full />
               </Card>
             </div>
@@ -345,7 +346,7 @@ export default function Workspace() {
         {tab === 'risk' && <RiskTab d={d} />}
         {tab === 'timeline' && <TimelineTab d={d} />}
       </div>
-      <p className="mt-6 max-w-[80ch] text-sm text-ink-2"><span className="text-ink-3">Complaint summary:</span> {c.description}</p>
+      <p className="mt-6 max-w-[80ch] text-sm text-ink-2"><span className="text-ink-3">{t('Complaint summary:')}</span> {c.description}</p>
     </>
   )
 }

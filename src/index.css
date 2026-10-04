@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-cond: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", "IBM Plex Sans Devanagari", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-cond: "IBM Plex Sans Condensed", "IBM Plex Sans", "IBM Plex Sans Devanagari", "Noto Sans Devanagari", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   /* Ink - blue-black used for text and structure (names kept for compatibility) */
@@ -109,3 +109,9 @@ h1, h2, .font-cond { font-family: var(--font-cond); }
   .app-shell { display: block !important; height: auto !important; }
 }
 .print-only { display: none; }
+
+/* Devanagari: letter-spacing breaks conjuncts and matras, and the script needs a little more line height */
+html:lang(hi) [class*="tracking-"],
+html:lang(mr) [class*="tracking-"] { letter-spacing: normal; }
+html:lang(hi) body,
+html:lang(mr) body { line-height: 1.6; }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, CircleAlert, CircleCheck, Copy, Info, LoaderCircle, OctagonAlert, TriangleAlert } from 'lucide-react'
 import { NETWORKS, RISK, STATUS, copyText, short } from '../lib/format'
+import { t } from '../i18n'
 
 export function useAsync(fn, deps = []) {
   const [state, setState] = useState({ data: null, error: null, loading: true })
@@ -66,14 +67,14 @@ export function RiskBadge({ level, score, className = '' }) {
   return (
     <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${RISK[level]?.cls} ${className}`}>
       <Icon size={12} strokeWidth={2.5} />
-      {level}
+      {t(level)}
       {score != null && <span className="tabular font-bold">{score}</span>}
     </span>
   )
 }
 
 export function StatusBadge({ status }) {
-  return <span className={`inline-flex items-center whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium ${STATUS[status] || 'bg-slate-100'}`}>{status}</span>
+  return <span className={`inline-flex items-center whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium ${STATUS[status] || 'bg-slate-100'}`}>{t(status)}</span>
 }
 
 export function NetworkBadge({ network, long = false }) {
@@ -95,8 +96,8 @@ export function CopyBtn({ text, size = 13 }) {
   return (
     <button
       type="button"
-      title="Copy"
-      aria-label="Copy to clipboard"
+      title={t('Copy')}
+      aria-label={t('Copy to clipboard')}
       onClick={async (e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -171,7 +172,7 @@ export function Tabs({ tabs, value, onChange }) {
   )
 }
 
-export function Loading({ label = 'Loading…' }) {
+export function Loading({ label = t('Loading…') }) {
   return (
     <div className="flex items-center justify-center gap-2 py-20 text-sm text-ink-2">
       <LoaderCircle size={18} className="animate-spin text-brand-600" /> {label}
@@ -184,7 +185,7 @@ export function ErrorBox({ error }) {
     <div className="card flex items-start gap-3 border-red-200 bg-red-50 p-4 text-sm text-critical-ink">
       <OctagonAlert size={18} className="mt-0.5 shrink-0" />
       <div>
-        <div className="font-semibold">Could not load data</div>
+        <div className="font-semibold">{t('Could not load data')}</div>
         <div className="mt-0.5">{String(error?.message || error)}</div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { ArrowRight, Building2, CircleCheck, Database, Gauge, GitBranch, LoaderC
 import { getCase } from '../lib/api'
 import { NETWORKS, inrShort, short } from '../lib/format'
 import { Card, ErrorBox, Loading, PageHeader, btn, useAsync } from '../components/ui'
+import { t } from '../i18n'
 
 // Mirrors the Celery pipeline stages of the real backend
 function buildSteps(d) {
@@ -14,28 +15,28 @@ function buildSteps(d) {
   d.nodes.forEach((n) => { if (n.hop >= 1) byHop[n.hop] = (byHop[n.hop] || 0) + 1 })
   const n0 = d.attributions[0]
   return [
-    { icon: Database, t: 'Fetching transactions', src: c.network === 'BTC' ? 'Blockchair API' : c.network === 'TRON' ? 'TRON API' : 'Etherscan V2 / Blockscout',
-      logs: [`Connected to ${net} data source`, `Wallet ${short(c.reported_wallet, 10, 6)}: ${d.transactions.filter((t) => t.to_address === c.reported_wallet || t.from_address === c.reported_wallet).length} transactions found`, `Received ${inrShort(d.pool_inr)} in total from ${d.nodes.filter((n) => n.hop === -1).length} source wallet(s)`] },
-    { icon: GitBranch, t: 'Tracing multi-hop fund flow', src: 'Tracing engine (Celery worker)',
-      logs: Object.entries(byHop).slice(0, 7).map(([h, n]) => `Hop ${h}: ${n} wallet(s) followed`).concat([
+    { icon: Database, t: t('Fetching transactions'), src: c.network === 'BTC' ? 'Blockchair API' : c.network === 'TRON' ? 'TRON API' : 'Etherscan V2 / Blockscout',
+      logs: [t('Connected to {net} data source', { net }), t('Wallet {w}: {n} transactions found', { w: short(c.reported_wallet, 10, 6), n: d.transactions.filter((x) => x.to_address === c.reported_wallet || x.from_address === c.reported_wallet).length }), t('Received {amt} in total from {n} source wallet(s)', { amt: inrShort(d.pool_inr), n: d.nodes.filter((n) => n.hop === -1).length })] },
+    { icon: GitBranch, t: t('Tracing multi-hop fund flow'), src: t('Tracing engine (Celery worker)'),
+      logs: Object.entries(byHop).slice(0, 7).map(([h, n]) => t('Hop {h}: {n} wallet(s) followed', { h, n })).concat([
         c.trace_depth && maxHop > c.trace_depth
-          ? `Depth auto-extended from ${c.trace_depth} to ${maxHop} hops to reach an exchange deposit`
-          : `Deepest hop reached: ${maxHop}`,
+          ? t('Depth auto-extended from {a} to {b} hops to reach an exchange deposit', { a: c.trace_depth, b: maxHop })
+          : t('Deepest hop reached: {n}', { n: maxHop }),
       ]) },
-    { icon: Network, t: 'Building transaction graph', src: 'NetworkX (Neo4j planned)',
-      logs: [`${d.nodes.length} nodes, ${d.transactions.length} edges in the transaction graph`, 'Computed flow values and time ordering per edge'] },
-    { icon: ScanSearch, t: 'Detecting patterns & clustering wallets', src: 'Pattern rules + clustering heuristics',
-      logs: [...d.patterns.map((p) => `Pattern: ${p.type} (${p.severity})`), `${d.clusters.length} wallet cluster(s) formed`] },
-    { icon: Building2, t: 'Attributing exchanges (VASPs)', src: 'Address-label DB + hot-wallet sweep matching',
-      logs: n0 ? d.attributions.map((a) => `${a.exchange}: deposit reached at hop ${a.hops}, ${Math.round(a.confidence * 100)}% confidence`) : ['No exchange deposit found within trace depth - funds are held in wallets'] },
-    { icon: Gauge, t: 'Scoring risk', src: d.risk.model,
+    { icon: Network, t: t('Building transaction graph'), src: t('NetworkX (Neo4j planned)'),
+      logs: [t('{a} nodes, {b} edges in the transaction graph', { a: d.nodes.length, b: d.transactions.length }), t('Computed flow values and time ordering per edge')] },
+    { icon: ScanSearch, t: t('Detecting patterns & clustering wallets'), src: t('Pattern rules + clustering heuristics'),
+      logs: [...d.patterns.map((p) => t('Pattern: {p} ({s})', { p: t(p.type), s: t(p.severity) })), t('{n} wallet cluster(s) formed', { n: d.clusters.length })] },
+    { icon: Building2, t: t('Attributing exchanges (VASPs)'), src: t('Address-label DB + hot-wallet sweep matching'),
+      logs: n0 ? d.attributions.map((a) => t('{ex}: deposit reached at hop {h}, {c}% confidence', { ex: a.exchange, h: a.hops, c: Math.round(a.confidence * 100) })) : [t('No exchange deposit found within trace depth - funds are held in wallets')] },
+    { icon: Gauge, t: t('Scoring risk'), src: t(d.risk.model),
       logs: [
-        `Rule engine: ${(d.risk.rules || []).filter((x) => x.fired).length} of ${(d.risk.rules || []).length} rules triggered (score ${d.risk.rule_score ?? d.risk.score})`,
+        t('Rule engine: {a} of {b} rules triggered (score {s})', { a: (d.risk.rules || []).filter((x) => x.fired).length, b: (d.risk.rules || []).length, s: d.risk.rule_score ?? d.risk.score }),
         ...(d.risk.ml ? [
-          `Isolation Forest anomaly score: ${Math.round(d.risk.ml.anomaly.case_score)}/100`,
-          `Laundering-wallet classifier flagged ${d.risk.ml.supervised.flagged} of ${d.risk.ml.supervised.of} wallets`,
+          t('Isolation Forest anomaly score: {n}/100', { n: Math.round(d.risk.ml.anomaly.case_score) }),
+          t('Laundering-wallet classifier flagged {a} of {b} wallets', { a: d.risk.ml.supervised.flagged, b: d.risk.ml.supervised.of }),
         ] : []),
-        `Final risk score ${d.risk.score}/100 (${d.risk.level})`,
+        t('Final risk score {s}/100 ({l})', { s: d.risk.score, l: t(d.risk.level) }),
       ] },
   ]
 }
@@ -85,19 +86,19 @@ export default function Analysis() {
   return (
     <>
       <PageHeader
-        title={done ? 'Trace complete' : 'Analysis in progress'}
+        title={done ? t('Trace complete') : t('Analysis in progress')}
         subtitle={
           params.get('existing')
-            ? 'This wallet is already part of an existing case. Re-running the trace for the latest on-chain data.'
-            : `Tracing ${NETWORKS[c.network].name} wallet ${short(c.reported_wallet, 10, 8)}`
+            ? t('This wallet is already part of an existing case. Re-running the trace for the latest on-chain data.')
+            : t('Tracing {net} wallet {w}', { net: NETWORKS[c.network].name, w: short(c.reported_wallet, 10, 8) })
         }
-        actions={<Link to={`/cases/${id}`} className={btn.secondary}>Skip to results <ArrowRight size={15} /></Link>}
+        actions={<Link to={`/cases/${id}`} className={btn.secondary}>{t('Skip to results')} <ArrowRight size={15} /></Link>}
       />
       <div className="mb-5 h-2 overflow-hidden rounded-full bg-slate-200">
         <div className="h-full rounded-full bg-brand-600 transition-all duration-700" style={{ width: `${pctDone}%` }} />
       </div>
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card title="Pipeline" subtitle="Each stage runs as a Celery task in the backend">
+        <Card title={t('Pipeline')} subtitle={t('Each stage runs as a Celery task in the backend')}>
           <ol className="space-y-1">
             {steps.map((s, i) => {
               const state = i < cur ? 'done' : i === cur ? 'run' : 'wait'
@@ -115,7 +116,7 @@ export default function Analysis() {
             })}
           </ol>
         </Card>
-        <Card title="Live log" pad={false}>
+        <Card title={t('Live log')} pad={false}>
           <div ref={logRef} className="h-[380px] overflow-y-auto bg-navy-950 p-4 font-mono text-[12px] leading-relaxed text-brand-100">
             {logs.map((l, i) => (
               <div key={i} className="slide-in">
@@ -124,7 +125,7 @@ export default function Analysis() {
             ))}
             {done && (
               <div className="mt-3 text-green-400">
-                ✔ Trace complete. {data.attributions[0] ? `Nearest VASP: ${data.attributions[0].exchange}.` : 'No VASP reached yet.'} Opening workspace…
+                ✔ {t('Trace complete.')} {data.attributions[0] ? t('Nearest VASP: {ex}.', { ex: data.attributions[0].exchange }) : t('No VASP reached yet.')} {t('Opening workspace…')}
               </div>
             )}
             {!done && <span className="caret" />}
@@ -133,7 +134,7 @@ export default function Analysis() {
       </div>
       {done && (
         <div className="mt-5 flex justify-center">
-          <Link to={`/cases/${id}`} className={btn.primary}><Waypoints size={16} /> Open investigation workspace</Link>
+          <Link to={`/cases/${id}`} className={btn.primary}><Waypoints size={16} /> {t('Open investigation workspace')}</Link>
         </div>
       )}
     </>

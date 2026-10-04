@@ -2,6 +2,7 @@
 // The LLM only writes prose; every number in the report tables comes from the trace itself.
 
 import { inrShort, inr, dateOnly, NETWORKS } from './format'
+import { getLang, t } from '../i18n'
 
 export function buildFacts(d, exchanges = []) {
   const c = d.case
@@ -25,9 +26,9 @@ export function buildFacts(d, exchanges = []) {
     total_inflow_to_reported_wallet: inr(d.pool_inr),
     traced_to_exchanges: inr(c.traced_to_vasp_inr),
     held_in_wallets: inr(c.held_in_wallets_inr),
-    risk: `${d.risk.score}/100 (${d.risk.level})`,
+    risk: `${d.risk.score}/100 (${t(d.risk.level)})`,
     top_risk_factors: d.risk.factors.slice(0, 5).map((f) => f.feature),
-    patterns: d.patterns.map((p) => `${p.type} [${p.severity}]: ${p.description}`),
+    patterns: d.patterns.map((p) => `${p.type} [${p.severity}]: ${p.description}`), // English facts; the prompt asks for the chosen language
     exchanges: d.attributions.map((a) => ({
       name: a.exchange, jurisdiction: a.jurisdiction, fiu_ind_registered: a.fiu_ind_registered, hops: a.hops,
       amount_received: inr(a.amount_inr), victim_share_pro_rata: inr(a.victim_attributable_inr),
@@ -40,23 +41,31 @@ export function buildFacts(d, exchanges = []) {
   }
 }
 
-export const SYSTEM_PROMPT = `You are a financial-crime analyst assisting Indian law-enforcement (cyber crime police / I4C).
-Write in formal, precise English suitable for a case file. Use ONLY the facts provided in the JSON.
-Never invent wallet addresses, amounts, names, dates or exchanges. If a fact is missing, say "not available".
-Use Indian number formatting (lakh / crore) when restating amounts.`
+const LANG_NAME = { en: 'English', hi: 'Hindi (Devanagari script)', mr: 'Marathi (Devanagari script)' }
 
-export function buildPrompt(facts) {
+/** System prompt in the officer's chosen UI language (wallet addresses, hashes and names stay as-is) */
+export function systemPrompt(lang = getLang()) {
+  return `You are a financial-crime analyst assisting Indian law-enforcement (cyber crime police / I4C).
+Write in formal, precise ${LANG_NAME[lang] || 'English'} suitable for a case file. Use ONLY the facts provided in the JSON.
+Never invent wallet addresses, amounts, names, dates or exchanges. If a fact is missing, say "not available".
+Keep wallet addresses, transaction hashes, case IDs, exchange names and legal section numbers exactly as given.
+Use Indian number formatting (lakh / crore) when restating amounts.`
+}
+export const SYSTEM_PROMPT = systemPrompt('en')
+
+export function buildPrompt(facts, lang = getLang()) {
+  const h = (s) => (lang === 'en' ? s : t(s))
   return `Case facts (JSON):
 ${JSON.stringify(facts, null, 2)}
 
-Write the narrative sections of an investigation report with exactly these headings, each on its own line starting with "### ":
-### Executive Summary
+Write the narrative sections of an investigation report in ${LANG_NAME[lang] || 'English'} with exactly these headings, each on its own line starting with "### ":
+### ${h('Executive Summary')}
 (one paragraph: what happened, how much, where the funds went, the nearest probable exchange)
-### Modus Operandi and Fund-Flow Analysis
+### ${h('Modus Operandi and Fund-Flow Analysis')}
 (one or two paragraphs explaining the laundering pattern hop by hop, referencing the detected patterns)
-### Basis for Exchange Attribution
+### ${h('Basis for Exchange Attribution')}
 (one paragraph explaining why the funds are attributed to the exchange(s), with confidence and limitations)
-### Recommended Next Steps
+### ${h('Recommended Next Steps')}
 (4-6 bullet points starting with "- ", e.g. notice under Section 94 BNSS, freeze request, watchlist, linked cases)
 
 Do not add any other headings. Do not repeat the JSON.`
@@ -64,41 +73,41 @@ Do not add any other headings. Do not repeat the JSON.`
 
 export function templateNarrative(f) {
   const n = f.exchanges[0]
-  const pats = f.patterns.map((p) => p.split(' [')[0].toLowerCase())
+  const pats = f.patterns.map((p) => t(p.split(' [')[0]).toLowerCase())
   const lines = []
-  lines.push('### Executive Summary')
+  lines.push(`### ${t('Executive Summary')}`)
   lines.push(
-    `On ${f.reported_on}, a complaint (NCRP Ack. ${f.ncrp_ack}) was registered from ${f.location} relating to ${f.fraud_type}. ` +
-      `The complainant transferred ${f.amount_lost} in ${f.victim_payments} payment(s) of ${f.token} on the ${f.network} network to the reported wallet ${f.reported_wallet}. ` +
-      `RAAZ traced ${f.wallets_traced} wallets and ${f.transactions_traced} transactions up to ${f.max_hop_depth} hops. ` +
+    t('On {date}, a complaint (NCRP Ack. {ack}) was registered from {loc} relating to {fraud}.', { date: f.reported_on, ack: f.ncrp_ack, loc: f.location, fraud: t(f.fraud_type) }) + ' ' +
+      t('The complainant transferred {amt} in {n} payment(s) of {tok} on the {net} network to the reported wallet {w}.', { amt: f.amount_lost, n: f.victim_payments, tok: f.token, net: f.network, w: f.reported_wallet }) + ' ' +
+      t('RAAZ traced {a} wallets and {b} transactions up to {h} hops.', { a: f.wallets_traced, b: f.transactions_traced, h: f.max_hop_depth }) + ' ' +
       (n
-        ? `${f.traced_to_exchanges} of the traced funds reached exchange-controlled deposit addresses; the nearest probable VASP is ${n.name} (${n.jurisdiction}) at ${n.hops} hops with ${n.confidence} attribution confidence.`
-        : `No exchange deposit has been observed yet; ${f.held_in_wallets} remains in layering wallets.`),
+        ? t('{amt} of the traced funds reached exchange-controlled deposit addresses; the nearest probable VASP is {ex} ({jur}) at {h} hops with {c} attribution confidence.', { amt: f.traced_to_exchanges, ex: n.name, jur: t(n.jurisdiction), h: n.hops, c: n.confidence })
+        : t('No exchange deposit has been observed yet; {amt} remains in layering wallets.', { amt: f.held_in_wallets })),
   )
-  lines.push('### Modus Operandi and Fund-Flow Analysis')
+  lines.push(`### ${t('Modus Operandi and Fund-Flow Analysis')}`)
   lines.push(
-    `The reported wallet received ${f.total_inflow_to_reported_wallet} in total, including inflows from other unattributed sources. ` +
-      `Funds were then moved through a layering structure showing ${pats.length ? pats.join(', ') : 'simple forwarding'}. ` +
-      `The overall risk score is ${f.risk}, driven mainly by: ${f.top_risk_factors.slice(0, 3).join('; ')}.`,
+    t('The reported wallet received {amt} in total, including inflows from other unattributed sources.', { amt: f.total_inflow_to_reported_wallet }) + ' ' +
+      t('Funds were then moved through a layering structure showing {p}.', { p: pats.length ? pats.join(', ') : t('simple forwarding') }) + ' ' +
+      t('The overall risk score is {r}, driven mainly by: {f}.', { r: f.risk, f: f.top_risk_factors.slice(0, 3).map((x) => t(x)).join('; ') }),
   )
-  if (f.syndicate) lines.push(`The consolidation wallet is shared with ${f.linked_cases.length} other case(s) (${f.linked_cases.join(', ')}), indicating the same operator group (${f.syndicate}).`)
-  lines.push('### Basis for Exchange Attribution')
+  if (f.syndicate) lines.push(t('The consolidation wallet is shared with {n} other case(s) ({ids}), indicating the same operator group ({syn}).', { n: f.linked_cases.length, ids: f.linked_cases.join(', '), syn: f.syndicate }))
+  lines.push(`### ${t('Basis for Exchange Attribution')}`)
   lines.push(
     n
-      ? `Attribution to ${n.name} is based on (i) the deposit address(es) ${n.deposit_addresses.join(', ')} being swept into a known ${n.name} hot wallet, and (ii) the per-user deposit-address pattern of the exchange. ` +
-          `${n.name} received ${n.amount_received}, of which ${n.victim_share_pro_rata} is attributable to the complainant on a pro-rata basis. ` +
-          `Attribution is probabilistic; confirmation must be obtained from the exchange's KYC and transaction records.`
-      : 'Not available - no exchange deposit observed in the traced depth.',
+      ? t('Attribution to {ex} is based on (i) the deposit address(es) {addrs} being swept into a known {ex} hot wallet, and (ii) the per-user deposit-address pattern of the exchange.', { ex: n.name, addrs: n.deposit_addresses.join(', ') }) + ' ' +
+          t('{ex} received {amt}, of which {share} is attributable to the complainant on a pro-rata basis.', { ex: n.name, amt: n.amount_received, share: n.victim_share_pro_rata }) + ' ' +
+          t("Attribution is probabilistic; confirmation must be obtained from the exchange's KYC and transaction records.")
+      : t('Not available - no exchange deposit observed in the traced depth.'),
   )
-  lines.push('### Recommended Next Steps')
+  lines.push(`### ${t('Recommended Next Steps')}`)
   if (n) {
-    lines.push(`- Issue notice under Section 94 BNSS to ${n.name} for KYC, login IP and withdrawal records of the deposit address owner.`)
-    lines.push(`- Request immediate debit freeze of ${n.victim_share_pro_rata} at ${n.name}.`)
+    lines.push('- ' + t('Issue notice under Section 94 BNSS to {ex} for KYC, login IP and withdrawal records of the deposit address owner.', { ex: n.name }))
+    lines.push('- ' + t('Request immediate debit freeze of {amt} at {ex}.', { amt: n.victim_share_pro_rata, ex: n.name }))
   }
-  lines.push('- Add the reported wallet and consolidation wallets to the RAAZ watchlist for real-time movement alerts.')
-  if (f.syndicate) lines.push(`- Coordinate with investigating officers of linked cases ${f.linked_cases.join(', ')} for a joint operation.`)
-  lines.push('- Preserve on-chain evidence (transaction hashes, block numbers) with hash-verified export for court submission.')
-  lines.push('- Update the NCRP complaint with trace findings and exchange details.')
+  lines.push('- ' + t('Add the reported wallet and consolidation wallets to the RAAZ watchlist for real-time movement alerts.'))
+  if (f.syndicate) lines.push('- ' + t('Coordinate with investigating officers of linked cases {ids} for a joint operation.', { ids: f.linked_cases.join(', ') }))
+  lines.push('- ' + t('Preserve on-chain evidence (transaction hashes, block numbers) with hash-verified export for court submission.'))
+  lines.push('- ' + t('Update the NCRP complaint with trace findings and exchange details.'))
   return lines.join('\n')
 }
 

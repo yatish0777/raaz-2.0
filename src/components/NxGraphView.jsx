@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import * as d3 from 'd3'
 import { ROLES, inrShort, short } from '../lib/format'
+import { t } from '../i18n'
 
 // Renders a graph whose node positions were computed by NetworkX (scripts/networkx_graph.py).
 // Positions arrive normalised to [0,1]; this component only draws them.
@@ -42,7 +43,7 @@ export default function NxGraphView({ nx, layout = 'layers', sizeBy = 'role', co
   }, [nx, layout, sizeBy, colorBy, height])
 
   return (
-    <svg viewBox={`0 0 ${W} ${height}`} className="h-auto w-full" role="img" aria-label="NetworkX transaction graph">
+    <svg viewBox={`0 0 ${W} ${height}`} className="h-auto w-full" role="img" aria-label={t('NetworkX transaction graph')}>
       <defs>
         {[['nxa', '#c3cad6'], ['nxa-hl', '#1d4ed8']].map(([id, c]) => (
           <marker key={id} id={id} viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="5" markerHeight="5" orient="auto">
@@ -67,7 +68,7 @@ export default function NxGraphView({ nx, layout = 'layers', sizeBy = 'role', co
           <path d={d3.symbol(SYMBOL[ROLES[n.role].shape], Math.PI * n.r * n.r)()} fill={n.color} stroke="#fff" strokeWidth="1.8" />
           {LABELLED.has(n.role) && (
             <text y={n.r + 13} textAnchor="middle" fontSize="11" fontWeight="600" fill="#0f172a" stroke="#fff" strokeWidth="3.5" paintOrder="stroke">
-              {n.role === 'suspect' ? 'Reported wallet' : n.role === 'victim' ? 'Victim' : n.entity}
+              {n.role === 'suspect' ? t('Reported wallet') : n.role === 'victim' ? t('Victim') : n.entity}
             </text>
           )}
           <title>{`${ROLES[n.role].label}${n.entity ? ` - ${n.entity}` : ''}\n${short(n.id, 10, 8)}\nbetweenness ${n.betweenness} · PageRank ${n.pagerank}\ncommunity ${n.community + 1} · in ${n.in_degree} / out ${n.out_degree}`}</title>

@@ -5,6 +5,7 @@ import { addToWatchlist, getWallet, listWatchlist } from '../lib/api'
 import { NETWORKS, ROLES, TX_KIND, dt, inrShort, riskLevel, short, token } from '../lib/format'
 import { Address, Card, CopyBtn, Empty, ErrorBox, Loading, NetworkBadge, RiskBadge, btn, useAsync } from '../components/ui'
 import { RoleGlyph } from '../components/TxGraph'
+import { t, tMessage } from '../i18n'
 
 export default function WalletProfile() {
   const { address } = useParams()
@@ -31,8 +32,8 @@ export default function WalletProfile() {
     return (
       <Card>
         <Empty>
-          This wallet is not in any RAAZ case yet.
-          <div className="mt-3"><Link className={btn.primary} to={`/investigate?address=${encodeURIComponent(address)}`}>Start an investigation on it</Link></div>
+          {t('This wallet is not in any RAAZ case yet.')}
+          <div className="mt-3"><Link className={btn.primary} to={`/investigate?address=${encodeURIComponent(address)}`}>{t('Start an investigation on it')}</Link></div>
         </Empty>
       </Card>
     )
@@ -46,7 +47,7 @@ export default function WalletProfile() {
     <>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="text-sm text-ink-3">Wallet profile</div>
+          <div className="text-sm text-ink-3">{t('Wallet profile')}</div>
           <div className="mt-1 flex items-center gap-2">
             <Wallet size={20} className="shrink-0 text-navy-900" />
             <h1 className="font-mono text-lg font-semibold break-all text-navy-900">{w.address}</h1>
@@ -69,19 +70,19 @@ export default function WalletProfile() {
               setAdded(true)
             }}
           >
-            <Radar size={15} /> {watched ? 'On watchlist' : 'Add to watchlist'}
+            <Radar size={15} /> {watched ? t('On watchlist') : t('Add to watchlist')}
           </button>
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         {[
-          ['Total received', inrShort(w.in_inr)],
-          ['Total sent', inrShort(w.out_inr)],
-          ['Balance (traced)', w.balance != null ? token(w.balance, w.token) : '-'],
-          ['Transactions', w.tx_count],
-          ['First seen', dt(w.first_seen)],
-          ['Last seen', dt(w.last_seen)],
+          [t('Total received'), inrShort(w.in_inr)],
+          [t('Total sent'), inrShort(w.out_inr)],
+          [t('Balance (traced)'), w.balance != null ? token(w.balance, w.token) : '-'],
+          [t('Transactions'), w.tx_count],
+          [t('First seen'), dt(w.first_seen)],
+          [t('Last seen'), dt(w.last_seen)],
         ].map(([k, v]) => (
           <div key={k} className="card px-4 py-3">
             <div className="text-xs text-ink-3">{k}</div>
@@ -91,24 +92,24 @@ export default function WalletProfile() {
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-3">
-        <Card title="Label & attribution">
+        <Card title={t('Label & attribution')}>
           <dl className="space-y-2 text-sm">
-            <div><dt className="text-xs text-ink-3">Label</dt><dd>{w.label}</dd></div>
-            <div><dt className="text-xs text-ink-3">Network</dt><dd>{NETWORKS[w.network].name}</dd></div>
-            <div><dt className="text-xs text-ink-3">Entity</dt><dd>{w.entity || 'Unattributed (private wallet)'}</dd></div>
+            <div><dt className="text-xs text-ink-3">{t('Label')}</dt><dd>{tMessage(w.label)}</dd></div>
+            <div><dt className="text-xs text-ink-3">{t('Network')}</dt><dd>{NETWORKS[w.network].name}</dd></div>
+            <div><dt className="text-xs text-ink-3">{t('Entity')}</dt><dd>{w.entity || t('Unattributed (private wallet)')}</dd></div>
             <div>
-              <dt className="text-xs text-ink-3">Appears in {w.cases.length} case(s)</dt>
+              <dt className="text-xs text-ink-3">{t('Appears in {n} case(s)', { n: w.cases.length })}</dt>
               <dd className="mt-1 flex flex-wrap gap-1.5">
                 {w.cases.map((c) => <Link key={c} to={`/cases/${c}`} className="rounded bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700 hover:underline">{c}</Link>)}
               </dd>
             </div>
           </dl>
-          {w.cases.length > 1 && <p className="mt-3 rounded-lg bg-red-50 p-2.5 text-xs text-critical-ink">This wallet links several complaints. It is likely controlled by the same operator.</p>}
+          {w.cases.length > 1 && <p className="mt-3 rounded-lg bg-red-50 p-2.5 text-xs text-critical-ink">{t('This wallet links several complaints. It is likely controlled by the same operator.')}</p>}
         </Card>
-        <Card className="lg:col-span-2" title="Top counterparties" pad={false}>
+        <Card className="lg:col-span-2" title={t('Top counterparties')} pad={false}>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-ink-2">
-              <tr><th className="px-4 py-2 font-semibold">Wallet</th><th className="px-3 py-2 font-semibold">Received from</th><th className="px-3 py-2 font-semibold">Sent to</th><th className="px-3 py-2 font-semibold">Txs</th></tr>
+              <tr><th className="px-4 py-2 font-semibold">{t('Wallet')}</th><th className="px-3 py-2 font-semibold">{t('Received from')}</th><th className="px-3 py-2 font-semibold">{t('Sent to')}</th><th className="px-3 py-2 font-semibold">{t('Txs')}</th></tr>
             </thead>
             <tbody className="divide-y divide-line">
               {cps.map((c) => (
@@ -124,31 +125,31 @@ export default function WalletProfile() {
         </Card>
       </div>
 
-      <Card className="mt-5" title="Transactions" subtitle={`${txs.length} in RAAZ cases`} pad={false}>
+      <Card className="mt-5" title={t('Transactions')} subtitle={t('{n} in RAAZ cases', { n: txs.length })} pad={false}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-ink-2">
-              <tr>{['', 'Time (IST)', 'Tx hash', 'Counterparty', 'Amount', 'Value', 'Type', 'Case'].map((h) => <th key={h} className="px-3 py-2.5 font-semibold whitespace-nowrap">{h}</th>)}</tr>
+              <tr>{['', 'Time (IST)', 'Tx hash', 'Counterparty', 'Amount', 'Value', 'Type', 'Case'].map((h) => <th key={h} className="px-3 py-2.5 font-semibold whitespace-nowrap">{h && t(h)}</th>)}</tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {txs.slice(0, 100).map((t) => {
-                const out = t.from_address === w.address
+              {txs.slice(0, 100).map((tx) => {
+                const out = tx.from_address === w.address
                 return (
-                  <tr key={t.id + t.to_address + t.case_id}>
-                    <td className="pl-3">{out ? <ArrowUpRight size={15} className="text-serious-ink" aria-label="Outgoing" /> : <ArrowDownLeft size={15} className="text-good-ink" aria-label="Incoming" />}</td>
-                    <td className="px-3 py-2 text-xs whitespace-nowrap text-ink-2">{dt(t.timestamp)}</td>
-                    <td className="px-3 py-2 font-mono text-[12px]">{short(t.hash, 8, 6)}</td>
-                    <td className="px-3 py-2"><Address value={out ? t.to_address : t.from_address} head={6} tail={4} copy={false} /></td>
-                    <td className="tabular px-3 py-2 whitespace-nowrap">{out ? '−' : '+'}{token(t.amount, t.token)}</td>
-                    <td className="tabular px-3 py-2">{inrShort(t.value_inr)}</td>
-                    <td className="px-3 py-2"><span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11.5px] text-ink-2">{TX_KIND[t.kind]}</span></td>
-                    <td className="px-3 py-2 text-xs"><Link to={`/cases/${t.case_id}`} className="text-brand-700 hover:underline">{t.case_id}</Link></td>
+                  <tr key={tx.id + tx.to_address + tx.case_id}>
+                    <td className="pl-3">{out ? <ArrowUpRight size={15} className="text-serious-ink" aria-label={t('Outgoing')} /> : <ArrowDownLeft size={15} className="text-good-ink" aria-label={t('Incoming')} />}</td>
+                    <td className="px-3 py-2 text-xs whitespace-nowrap text-ink-2">{dt(tx.timestamp)}</td>
+                    <td className="px-3 py-2 font-mono text-[12px]">{short(tx.hash, 8, 6)}</td>
+                    <td className="px-3 py-2"><Address value={out ? tx.to_address : tx.from_address} head={6} tail={4} copy={false} /></td>
+                    <td className="tabular px-3 py-2 whitespace-nowrap">{out ? '−' : '+'}{token(tx.amount, tx.token)}</td>
+                    <td className="tabular px-3 py-2">{inrShort(tx.value_inr)}</td>
+                    <td className="px-3 py-2"><span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11.5px] text-ink-2">{TX_KIND[tx.kind]}</span></td>
+                    <td className="px-3 py-2 text-xs"><Link to={`/cases/${tx.case_id}`} className="text-brand-700 hover:underline">{tx.case_id}</Link></td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
-          {txs.length > 100 && <div className="border-t border-line px-4 py-2 text-xs text-ink-3">Showing latest 100 of {txs.length}</div>}
+          {txs.length > 100 && <div className="border-t border-line px-4 py-2 text-xs text-ink-3">{t('Showing latest 100 of {n}', { n: txs.length })}</div>}
         </div>
       </Card>
     </>

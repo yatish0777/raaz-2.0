@@ -56,6 +56,7 @@ RAAZ is a web platform for cybercrime investigators. **Enter the victim-reported
 | Links to other cases | Wallets shared between complaints reveal the same operator |
 | Documents ready to send | Investigation report (AI-written narrative) and a draft Section 94 BNSS notice to the exchange asking for KYC and a freeze |
 | Live alerts | Watchlisted wallets raise an alert the moment funds move |
+| **Hindi and Marathi UI** | One click switches the whole app between English, हिंदी and मराठी; the AI report is written in the chosen language |
 
 The nearest exchange is the single most useful fact in a case. RAAZ puts it at the top of the page.
 
@@ -162,6 +163,7 @@ This repository is the **UI prototype and dataset** for the hackathon. We are cl
 | Live blockchain data | 🔜 Planned | The app reads JSON through a mock API layer ([`src/lib/api.js`](src/lib/api.js)) shaped like the future FastAPI responses |
 | FastAPI, Celery + Redis, PostgreSQL, Neo4j | 🔜 Planned | See [target architecture](#target-architecture) |
 | Supervised model on real labelled cases, real address-label database | 🔜 Future | Retrain the classifier on labelled Indian cases; the rules stay as the explainable baseline |
+| Regional-language UI | ✅ Built | English, Hindi and Marathi across every screen, alert and report; the Sec. 94 notice stays in English for the exchange (see [Languages](#languages)) |
 | Login / SSO | ⏸ Left out | The prototype opens straight to the dashboard. Production would use department SSO with hardware OTP and audit logging |
 
 "New investigation" works on any valid TRON, EVM or Bitcoin address. For a wallet that is not in the dataset, the app builds a result from an existing case on the same network and marks it **"Demo-generated result"**.
@@ -277,6 +279,15 @@ No login is needed.
 
 The model only receives the structured facts of one case and writes the narrative. Tables, amounts and addresses in the report come from the trace data, never from the model. Without Ollama, a template narrative is used, so the report always works.
 
+### Languages
+
+RAAZ speaks **English, हिंदी and मराठी**. Pick a language from the switch in the top bar; the choice is remembered. A link can also open the app in a language: add `?lang=hi` or `?lang=mr` to any URL.
+
+- Every screen, alert, case timeline entry and pattern description is translated. Wallet addresses, hashes, case IDs, exchange names and people's names stay as they are.
+- The investigation report is written in the chosen language: the offline template is translated, and Ollama is asked to write in Hindi or Marathi.
+- The Section 94 BNSS notice stays in English, because it goes to the exchange's compliance team.
+- Strings live in [`src/i18n/`](src/i18n). The English text is the key, so a missing translation falls back to English. To add a language, copy `hi.js`, translate the values and add it to `LANGS` in `src/i18n/index.jsx`.
+
 ### Deploy to Vercel
 
 Import the repository in Vercel. Framework preset **Vite**, build command `npm run build`, output `dist`. [`vercel.json`](vercel.json) already rewrites client-side routes to `index.html`.
@@ -338,7 +349,8 @@ RAAZ is designed for authorised law-enforcement use.
 - [ ] Address-label database and exchange deposit-address heuristics, validated on real labelled data
 - [ ] ML risk model trained on historical cases (rule engine stays as baseline)
 - [ ] Department SSO, role-based access and audit log
-- [ ] Hindi and regional-language support
+- [x] Hindi and Marathi UI
+- [ ] More Indian languages (Tamil, Telugu, Bengali, Gujarati…)
 - [ ] Direct integration with NCRP and I4C systems
 
 ## Built by

@@ -1,10 +1,23 @@
 // Formatting helpers + shared visual vocabulary (networks, roles, risk, status)
+import { dateLocale, t } from '../i18n'
 
 export const NOW = new Date('2026-09-24T10:00:00+05:30') // dataset "now" - keeps relative times stable
 const LOADED = Date.now()
 /** Simulated clock: dataset "now" + time since the page loaded (so live alerts tick forward) */
 export function nowSim() {
   return new Date(NOW.getTime() + (Date.now() - LOADED))
+}
+
+/** Wraps a lookup table so its English labels come back translated (t() is applied on read) */
+function translated(table, field) {
+  return new Proxy(table, {
+    get(o, k) {
+      const v = o[k]
+      if (v == null || typeof k !== 'string') return v
+      if (field) return { ...v, [field]: t(v[field]) }
+      return typeof v === 'string' ? t(v) : v
+    },
+  })
 }
 
 const inrFmt = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 })
@@ -40,23 +53,24 @@ export function short(addr, head = 6, tail = 4) {
   return addr.length <= head + tail + 1 ? addr : `${addr.slice(0, head)}…${addr.slice(-tail)}`
 }
 
-export function dt(iso) {
+/** locale: pass 'en-IN' for text that must stay in English (the notice to the exchange) */
+export function dt(iso, locale = dateLocale()) {
   if (!iso) return '-'
-  return new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })
+  return new Date(iso).toLocaleString(locale, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' })
 }
 
-export function dateOnly(iso) {
+export function dateOnly(iso, locale = dateLocale()) {
   if (!iso) return '-'
-  return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })
+  return new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })
 }
 
 export function ago(iso, now = nowSim()) {
   const s = (now - new Date(iso)) / 1000
-  if (s < 60) return 'just now'
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`
+  if (s < 60) return t('just now')
+  if (s < 3600) return t('{n}m ago', { n: Math.floor(s / 60) })
+  if (s < 86400) return t('{n}h ago', { n: Math.floor(s / 3600) })
   const d = Math.floor(s / 86400)
-  return d === 1 ? '1 day ago' : `${d} days ago`
+  return d === 1 ? t('1 day ago') : t('{n} days ago', { n: d })
 }
 
 export function pct(v, d = 0) {
@@ -74,14 +88,14 @@ export const NETWORKS = {
 /** Detect network family from address format */
 export function detectNetwork(addr) {
   const a = (addr || '').trim()
-  if (/^0x[a-fA-F0-9]{40}$/.test(a)) return { family: 'EVM', networks: ['ETH', 'BSC', 'POLYGON'], label: 'EVM address (Ethereum / BSC / Polygon)' }
-  if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(a)) return { family: 'TRON', networks: ['TRON'], label: 'TRON address (Base58, T-prefix)' }
-  if (/^(bc1[a-z0-9]{25,62}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(a)) return { family: 'BTC', networks: ['BTC'], label: 'Bitcoin address' }
+  if (/^0x[a-fA-F0-9]{40}$/.test(a)) return { family: 'EVM', networks: ['ETH', 'BSC', 'POLYGON'], label: t('EVM address (Ethereum / BSC / Polygon)') }
+  if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(a)) return { family: 'TRON', networks: ['TRON'], label: t('TRON address (Base58, T-prefix)') }
+  if (/^(bc1[a-z0-9]{25,62}|[13][a-km-zA-HJ-NP-Z1-9]{25,34})$/.test(a)) return { family: 'BTC', networks: ['BTC'], label: t('Bitcoin address') }
   return null
 }
 
 // Graph roles: colour + shape (shape is the secondary encoding so identity is never colour-only)
-export const ROLES = {
+export const ROLES = translated({
   victim: { label: 'Victim wallet', color: '#1baf7a', shape: 'circle' },
   inbound: { label: 'Other inbound source', color: '#e87ba4', shape: 'circle' },
   dust: { label: 'Dusting source', color: '#b5b3ab', shape: 'circle' },
@@ -92,7 +106,7 @@ export const ROLES = {
   bridge: { label: 'Cross-chain bridge', color: '#eda100', shape: 'triangle' },
   exchange_deposit: { label: 'Exchange deposit address', color: '#2a78d6', shape: 'square' },
   exchange_hot: { label: 'Exchange hot wallet', color: '#0d366b', shape: 'square' },
-}
+}, 'label')
 
 export const RISK = {
   Critical: { cls: 'bg-red-50 text-critical-ink ring-red-200', dot: 'var(--color-critical)' },
@@ -117,7 +131,7 @@ export const STATUS = {
 }
 export const STATUS_ORDER = ['New', 'Tracing', 'Exchange Identified', 'Notice Sent', 'KYC Received', 'Monitoring', 'Closed']
 
-export const TX_KIND = {
+export const TX_KIND = translated({
   victim_payment: 'Victim payment',
   inbound: 'Other inbound',
   dust: 'Dust',
@@ -130,13 +144,13 @@ export const TX_KIND = {
   consolidation: 'Consolidation',
   exchange_deposit: 'Exchange deposit',
   exchange_sweep: 'Exchange sweep',
-}
+})
 
 export async function copyText(t) {
   try { await navigator.clipboard.writeText(t); return true } catch { return false }
 }
 
-export const FRAUD_SHORT = {
+export const FRAUD_SHORT = translated({
   'Investment / Trading App Fraud': 'Trading app fraud',
   'Task-based Part-time Job Fraud': 'Task / job fraud',
   'Pig-butchering (Romance-Investment)': 'Pig-butchering',
@@ -144,4 +158,4 @@ export const FRAUD_SHORT = {
   'Digital Arrest Scam': 'Digital arrest',
   'Ponzi / MLM Token Scheme': 'Ponzi / MLM',
   'Loan App Extortion': 'Loan app extortion',
-}
+})

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import { Maximize2, Minus, Plus } from 'lucide-react'
 import { ROLES, inrShort, short } from '../lib/format'
+import { getLang, t } from '../i18n'
 
 const COL = 135
 const BASE_R = { suspect: 15, exchange_hot: 14, exchange_deposit: 12, mixer: 13, bridge: 13, consolidation: 12, victim: 12, inbound: 8, dust: 6, intermediary: 7 }
@@ -17,11 +18,11 @@ const area = (d) => {
   return shape === 'circle' ? Math.PI * r * r : shape === 'triangle' ? r * r * 2.6 : r * r * 3.2
 }
 const labelFor = (d) => {
-  if (d.role === 'suspect') return 'Reported wallet'
-  if (d.role === 'victim') return 'Victim'
-  if (d.role === 'consolidation') return 'Consolidation'
+  if (d.role === 'suspect') return t('Reported wallet')
+  if (d.role === 'victim') return t('Victim')
+  if (d.role === 'consolidation') return t('Consolidation')
   if (d.role === 'exchange_deposit') return d.entity
-  if (d.role === 'exchange_hot') return `${d.entity} hot wallet`
+  if (d.role === 'exchange_hot') return t('{ex} hot wallet', { ex: d.entity })
   return d.entity || ''
 }
 
@@ -109,8 +110,8 @@ export default function TxGraph({ nodes, transactions, highlight, selected, onSe
       .attr('stroke', '#eef1f6').attr('stroke-width', 1)
     guides.selectAll('text').data(hops).join('text')
       .attr('x', (h) => (h + 1) * COL).attr('y', yTop).attr('text-anchor', 'middle')
-      .attr('font-size', 10.5).attr('font-weight', 600).attr('letter-spacing', '0.08em').attr('fill', '#7b8699')
-      .text((h) => (h === -1 ? 'SOURCES' : h === 0 ? 'REPORTED' : `HOP ${h}`))
+      .attr('font-size', 10.5).attr('font-weight', 600).attr('letter-spacing', getLang() === 'en' ? '0.08em' : 0).attr('fill', '#7b8699')
+      .text((h) => (h === -1 ? t('SOURCES') : h === 0 ? t('REPORTED') : t('HOP {n}', { n: h })))
 
     const linkPath = (d) => {
       const sx = d.source.x, sy = d.source.y, tx = d.target.x, ty = d.target.y
@@ -198,11 +199,11 @@ export default function TxGraph({ nodes, transactions, highlight, selected, onSe
 
   return (
     <div ref={wrapRef} className="relative overflow-hidden rounded-lg bg-[#fbfcfe]" style={{ height }}>
-      <svg ref={svgRef} width="100%" height={height} role="img" aria-label="Transaction flow graph" />
+      <svg ref={svgRef} width="100%" height={height} role="img" aria-label={t('Transaction flow graph')} />
       <div className="absolute top-3 right-3 flex flex-col overflow-hidden rounded-lg border border-line bg-white shadow-sm">
-        <button onClick={() => z(1.3)} className="p-2 text-ink-2 hover:bg-slate-50" aria-label="Zoom in"><Plus size={16} /></button>
-        <button onClick={() => z(1 / 1.3)} className="border-t border-line p-2 text-ink-2 hover:bg-slate-50" aria-label="Zoom out"><Minus size={16} /></button>
-        <button onClick={() => fit()} className="border-t border-line p-2 text-ink-2 hover:bg-slate-50" aria-label="Fit to screen"><Maximize2 size={15} /></button>
+        <button onClick={() => z(1.3)} className="p-2 text-ink-2 hover:bg-slate-50" aria-label={t('Zoom in')}><Plus size={16} /></button>
+        <button onClick={() => z(1 / 1.3)} className="border-t border-line p-2 text-ink-2 hover:bg-slate-50" aria-label={t('Zoom out')}><Minus size={16} /></button>
+        <button onClick={() => fit()} className="border-t border-line p-2 text-ink-2 hover:bg-slate-50" aria-label={t('Fit to screen')}><Maximize2 size={15} /></button>
       </div>
       {tip && (
         <div
@@ -213,12 +214,12 @@ export default function TxGraph({ nodes, transactions, highlight, selected, onSe
           {tip.d.entity && <div className="mt-0.5 text-white">{tip.d.entity}</div>}
           <div className="mt-1 font-mono text-[11px]">{short(tip.d.address, 12, 8)}</div>
           <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5">
-            <span>Hop</span><span className="text-right text-white">{tip.d.hop < 0 ? 'source' : tip.d.hop}</span>
-            <span>Received</span><span className="text-right text-white">{inrShort(tip.d.in_inr)}</span>
-            <span>Sent</span><span className="text-right text-white">{inrShort(tip.d.out_inr)}</span>
-            <span>Transactions</span><span className="text-right text-white">{tip.d.tx_count}</span>
+            <span>{t('Hop')}</span><span className="text-right text-white">{tip.d.hop < 0 ? t('Source') : tip.d.hop}</span>
+            <span>{t('Received')}</span><span className="text-right text-white">{inrShort(tip.d.in_inr)}</span>
+            <span>{t('Sent')}</span><span className="text-right text-white">{inrShort(tip.d.out_inr)}</span>
+            <span>{t('Transactions')}</span><span className="text-right text-white">{tip.d.tx_count}</span>
           </div>
-          <div className="mt-2 text-[10.5px] text-brand-200/70">Click for details · drag to move</div>
+          <div className="mt-2 text-[10.5px] text-brand-200/70">{t('Click for details · drag to move')}</div>
         </div>
       )}
     </div>
