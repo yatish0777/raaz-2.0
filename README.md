@@ -22,6 +22,7 @@ Smart India Hackathon 2026 · Problem Statement **SIH26183**
 > **RAAZ 2.0** - clean-up of the SIH idea-round prototype:
 > honest "Demo mode" labels, unit-level demo numbers, a hybrid risk score (7 rules + unsupervised anomaly detection + supervised laundering-wallet classifier) instead of a mock ML score,
 > a visible confidence formula, a prominent cross-case (same operator) banner, and foreign-exchange routing guidance on the draft notice.
+> **New:** the whole app in **English, हिंदी and मराठी** (one-click switch in the top bar; AI reports follow the chosen language).
 > Everything still runs on **fictional demo data**; live blockchain tracing is the next step.
 
 [Problem](#the-problem) · [Solution](#our-solution) · [Screenshots](#screenshots) · [How it works](#how-it-works) · [NetworkX](#networkx-graph-analysis) · [Prototype status](#prototype-status-what-is-real-and-what-is-simulated) · [Run it](#run-it-locally) · [Architecture](#target-architecture)
@@ -95,7 +96,7 @@ The nearest exchange is the single most useful fact in a case. RAAZ puts it at t
   </tr>
   <tr>
     <td><a href="docs/screenshots/16-cases.png"><img src="docs/screenshots/16-cases.png" alt="Cases list" /></a><br /><sub><b>15. Cases.</b> Search, filter and sort all investigations.</sub></td>
-    <td align="center"><a href="docs/screenshots/17-mobile.png"><img src="docs/screenshots/17-mobile.png" alt="Mobile layout" width="55%" /></a><br /><sub><b>16. Responsive.</b> Works on a phone for field officers.</sub></td>
+    <td align="center"><a href="docs/screenshots/17-mobile.png"><img src="docs/screenshots/17-mobile.png" alt="Mobile layout in Hindi" width="55%" /></a><br /><sub><b>16. Responsive, in Hindi.</b> Works on a phone for field officers, in English, हिंदी or मराठी.</sub></td>
   </tr>
 </table>
 

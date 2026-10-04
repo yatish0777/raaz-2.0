@@ -113,7 +113,7 @@ try {
   await shot('15-wallet-profile', { path: `/wallets/${SHARED_WALLET}`, height: 1250 })
   await shot('16-cases', { path: '/cases', height: 950 })
   await shot('17-mobile', {
-    path: `/cases/${CASE}`,
+    path: `/cases/${CASE}?lang=hi`, // also shows the Hindi UI
     width: 390,
     height: 844,
     mobile: true,
