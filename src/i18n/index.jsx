@@ -58,6 +58,8 @@ const MESSAGE_PATTERNS = [
   [/^Case opened in RAAZ by (.+?) \(NCRP (.+)\)$/, 'Case opened in RAAZ by {name} (NCRP {ack})', ['name', 'ack']],
   [/^Case opened in RAAZ by (.+)$/, 'Case opened in RAAZ by {name}', ['name']],
   [/^Automated multi-hop trace completed \(depth (\d+)\)$/, 'Automated multi-hop trace completed (depth {n})', ['n']],
+  [/^Live trace on TRON completed \((\d+) API calls\)$/, 'Live trace on TRON completed ({n} API calls)', ['n']],
+  [/^The reported wallet itself is labelled (.+)\.$/, 'The reported wallet itself is labelled {label}.', ['label']],
   [/^Nearest VASP identified: (.+) \((\d+) hops, (\d+)% confidence\)$/, 'Nearest VASP identified: {ex} ({n} hops, {c}% confidence)', ['ex', 'n', 'c']],
   [/^Notice (\S+) sent to (.+)$/, 'Notice {ref} sent to {ex}', ['ref', 'ex']],
   [/^KYC details received; INR ([\d,]+) frozen at (.+)$/, 'KYC details received; INR {amt} frozen at {ex}', ['amt', 'ex']],

@@ -254,9 +254,11 @@ export function AttributionTab({ d, exchanges }) {
                     {i === 0 && <span className="rounded bg-brand-600 px-1.5 py-0.5 text-[11px] font-bold text-white">{t('NEAREST')}</span>}
                     {a.fiu_ind_registered
                       ? <span className="inline-flex items-center gap-1 rounded bg-green-50 px-1.5 py-0.5 text-[11px] font-semibold text-good-ink"><BadgeCheck size={12} /> {t('FIU-IND registered')}</span>
-                      : <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-warn-ink"><Globe size={12} /> {t('Not registered in India')}</span>}
+                      : a.fiu_ind_registered === false
+                        ? <span className="inline-flex items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-warn-ink"><Globe size={12} /> {t('Not registered in India')}</span>
+                        : <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-ink-2">{t('FIU-IND status not checked')}</span>}
                   </div>
-                  <div className="mt-0.5 text-sm text-ink-2">{t(a.type)} · {t(a.jurisdiction)}</div>
+                  <div className="mt-0.5 text-sm text-ink-2">{t(a.type)}{a.jurisdiction ? ` · ${t(a.jurisdiction)}` : ''}</div>
                 </div>
               </div>
               <div className="text-right">
@@ -269,7 +271,7 @@ export function AttributionTab({ d, exchanges }) {
               <div><div className="text-xs text-ink-3">{t('Amount received')}</div><div className="text-lg font-bold">{inrShort(a.amount_inr)}</div></div>
               <div><div className="text-xs text-ink-3">{t("Complainant's share (pro-rata)")}</div><div className="text-lg font-bold">{inrShort(a.victim_attributable_inr)}</div></div>
               <div><div className="text-xs text-ink-3">{t('Cooperation with LEA')}</div><div className="text-lg font-bold">{e?.cooperation ? t(e.cooperation) : '-'}</div></div>
-              <div><div className="text-xs text-ink-3">{t('Avg. response time')}</div><div className="text-lg font-bold">{e?.avg_response_days ? t('{n} days', { n: e.avg_response_days }) : t('No response')}</div></div>
+              <div><div className="text-xs text-ink-3">{t('Avg. response time')}</div><div className="text-lg font-bold">{e?.avg_response_days ? t('{n} days', { n: e.avg_response_days }) : e ? t('No response') : '-'}</div></div>
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <div>

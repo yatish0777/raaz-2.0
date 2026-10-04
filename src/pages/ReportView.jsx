@@ -215,8 +215,8 @@ export default function ReportView() {
                   <tbody>
                     {d.attributions.map((a) => (
                       <tr key={a.exchange_id}>
-                        <td><b>{a.exchange}</b><div className="text-[11px] text-ink-3">{a.fiu_ind_registered ? t('FIU-IND registered') : t('Not registered in India')}</div></td>
-                        <td>{t(a.jurisdiction)}</td><td>{a.hops}</td><td>{inr(a.amount_inr)}</td><td>{inr(a.victim_attributable_inr)}</td><td>{Math.round(a.confidence * 100)}%</td>
+                        <td><b>{a.exchange}</b><div className="text-[11px] text-ink-3">{a.fiu_ind_registered ? t('FIU-IND registered') : a.fiu_ind_registered === false ? t('Not registered in India') : t('FIU-IND status not checked')}</div></td>
+                        <td>{a.jurisdiction ? t(a.jurisdiction) : '-'}</td><td>{a.hops}</td><td>{inr(a.amount_inr)}</td><td>{inr(a.victim_attributable_inr)}</td><td>{Math.round(a.confidence * 100)}%</td>
                       </tr>
                     ))}
                   </tbody>
@@ -256,7 +256,7 @@ export default function ReportView() {
             <>
             {!n0.fiu_ind_registered && (
               <div className="no-print mb-5 rounded-lg border border-amber-300 bg-amber-50 p-3 text-[13px] text-warn-ink">
-                <b>{t('Foreign / unregistered exchange ({jur}).', { jur: t(n0.jurisdiction) })}</b> {t('An Indian BNSS notice may not legally bind a company outside India.')}
+                <b>{t('Foreign / unregistered exchange ({jur}).', { jur: n0.jurisdiction ? t(n0.jurisdiction) : t('Not checked') })}</b> {t('An Indian BNSS notice may not legally bind a company outside India.')}
                 {' '}{t("Route this request through I4C's VASP coordination channel, or a letter of request / MLAT via MHA, and send it meanwhile as a request for voluntary cooperation.")}
                 {' '}{t('Check the wording with your legal cell before issue.')}
               </div>
@@ -271,7 +271,7 @@ export default function ReportView() {
                 <div>Ref. No.: <b className="font-mono">{noticeRef_}</b></div>
                 <div>Date: {todayEn}</div>
               </div>
-              <p className="mt-4">To,<br />The Nodal / Compliance Officer,<br /><b>{n0.exchange}</b> ({n0.jurisdiction})<br />{ex?.compliance_contact}</p>
+              <p className="mt-4">To,<br />The Nodal / Compliance Officer,<br /><b>{n0.exchange}</b>{n0.jurisdiction ? ` (${n0.jurisdiction})` : ''}<br />{ex?.compliance_contact}</p>
               <p><b>Subject:</b> Production of KYC and transaction records, and freezing of account(s) linked to the deposit address(es) below - Case {c.id} / NCRP Ack. {c.ncrp_ack}.</p>
               <p>Sir / Madam,</p>
               <p>

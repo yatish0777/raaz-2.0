@@ -91,6 +91,7 @@ export default function Layout() {
   const nav = useNavigate()
   const loc = useLocation()
   const unread = useUnread()
+  const livePage = /RAAZ-LIVE-/.test(loc.pathname)
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
   const [railOpen, setRailOpen] = useState(false)
@@ -209,9 +210,15 @@ export default function Layout() {
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="no-print bg-amber-50 px-4 py-1 text-center text-[12px] text-warn-ink">
-          {t('Demo data: every wallet, hash, person and exchange name here is fictional.')}
-        </div>
+        {livePage ? (
+          <div className="no-print bg-green-50 px-4 py-1 text-center text-[12px] text-good-ink">
+            {t('Live data: wallets and transfers on this page are real TRON blockchain records.')}
+          </div>
+        ) : (
+          <div className="no-print bg-amber-50 px-4 py-1 text-center text-[12px] text-warn-ink">
+            {t('Demo data: every wallet, hash, person and exchange name here is fictional.')}
+          </div>
+        )}
         <header className="no-print flex items-center gap-3 border-b border-line bg-white px-4 py-2 lg:px-8">
           <button className="text-ink-2 lg:hidden" onClick={() => setOpen(true)} aria-label={t('Open menu')}><Menu size={22} /></button>
           <form onSubmit={onSearch} className="relative max-w-xl flex-1">
@@ -225,9 +232,15 @@ export default function Layout() {
           </form>
           <div className="ml-auto flex items-center gap-2">
             <LanguageSwitch />
-            <span className="hidden items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-warn-ink md:inline-flex" title={t('Prototype running on demo data. Live blockchain tracing is not connected in this build.')}>
-              <span className="size-2 rounded-full bg-amber-500" /> {t('Demo mode')}
-            </span>
+            {livePage ? (
+              <span className="hidden items-center gap-1.5 rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-good-ink md:inline-flex">
+                <span className="live-dot size-2 rounded-full bg-good" /> {t('Live data')}
+              </span>
+            ) : (
+              <span className="hidden items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-warn-ink md:inline-flex" title={t('Prototype running on demo data. Live tracing is available for TRON wallets from New investigation.')}>
+                <span className="size-2 rounded-full bg-amber-500" /> {t('Demo mode')}
+              </span>
+            )}
             <Link to="/watchlist" className="relative rounded-lg p-2 text-ink-2 hover:bg-slate-100" aria-label={t('{n} unread alerts', { n: unread })}>
               <Bell size={19} />
               {unread > 0 && (

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
-  Activity, ArrowRight, BadgeCheck, Building2, Clock, FileText, Gauge, GitBranch, Globe, Layers, Network, Radar, Route, ScanSearch,
+  Activity, ArrowRight, BadgeCheck, CircleHelp, ExternalLink, Radio, Building2, Clock, FileText, Gauge, GitBranch, Globe, Layers, Network, Radar, Route, ScanSearch,
   TableProperties, TriangleAlert, Users, Waypoints,
 } from 'lucide-react'
 import { addToWatchlist, getCase, listCases, listExchanges } from '../lib/api'
@@ -33,6 +33,28 @@ function pathToNearest(d) {
   return set
 }
 
+/** What the live trace did: data source, window, API calls, price used, and anything it had to skip */
+function LiveTraceCard({ meta }) {
+  if (!meta) return null
+  return (
+    <Card title={t('About this live trace')}>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+        <dt className="text-ink-3">{t('Source')}</dt><dd>TronGrid (USDT TRC-20){meta.keys?.tronscan ? ' + Tronscan' : ''}</dd>
+        <dt className="text-ink-3">{t('Time window')}</dt><dd>{dt(meta.window.from)} → {dt(meta.window.to)}</dd>
+        <dt className="text-ink-3">{t('API calls')}</dt><dd>{meta.calls}</dd>
+        <dt className="text-ink-3">{t('Rate used')}</dt><dd>1 USDT = ₹{meta.usdt_inr} ({meta.price_source === 'CoinGecko' ? 'CoinGecko' : t('fixed fallback')})</dd>
+      </dl>
+      {meta.assumed_victim && <p className="mt-3 rounded-lg bg-brand-50 p-2.5 text-xs text-brand-700">{t('No amount was entered, so the largest sender into the reported wallet is treated as the complainant.')}</p>}
+      {!!meta.warnings?.length && (
+        <ul className="mt-3 space-y-1 rounded-lg bg-amber-50 p-2.5 text-xs text-warn-ink">
+          {meta.warnings.map((w) => <li key={w} className="flex gap-1.5"><TriangleAlert size={13} className="mt-0.5 shrink-0" />{tMessage(w)}</li>)}
+        </ul>
+      )}
+      <p className="mt-3 text-xs text-ink-3">{t('Only the largest outflows of each wallet are followed. Exchange wallets are matched against public labels; confirm with the exchange before acting.')}</p>
+    </Card>
+  )
+}
+
 function NodePanel({ node, d, onClose }) {
   const [added, setAdded] = useState(false)
   const c = d.case
@@ -46,6 +68,11 @@ function NodePanel({ node, d, onClose }) {
       {node.entity && <div className="rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700">{node.entity}</div>}
       <div className="text-xs text-ink-3">{tMessage(node.label)}</div>
       <div className="rounded-lg bg-slate-50 p-2.5 font-mono text-[11.5px] break-all text-ink">{node.address}</div>
+      {c.live && (
+        <a href={`https://tronscan.org/#/address/${node.address}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-brand-700 hover:underline">
+          <ExternalLink size={12} /> {t('Verify on Tronscan')}
+        </a>
+      )}
       <dl className="grid grid-cols-2 gap-y-1.5 text-sm">
         <dt className="text-ink-3">{t('Network')}</dt><dd className="text-right"><NetworkBadge network={node.network} /></dd>
         <dt className="text-ink-3">{t('Hop')}</dt><dd className="text-right font-semibold">{node.hop < 0 ? t('Source') : node.hop}</dd>
@@ -106,7 +133,7 @@ export default function Workspace() {
     { id: 'attr', label: t('Exchange attribution'), icon: Building2, count: d.attributions.length },
     { id: 'risk', label: t('Risk score'), icon: Gauge },
     { id: 'timeline', label: t('Timeline & legal'), icon: Clock },
-  ]
+  ].filter((x) => !(c.live && (x.id === 'nx' || (x.id === 'clusters' && !d.clusters.length))))
 
   return (
     <>
@@ -118,6 +145,7 @@ export default function Workspace() {
             <span aria-hidden="true">/</span>
             <span>{t(c.fraud_type)}</span>
             {c.demo_generated && <span className="rounded bg-violet-50 px-1.5 py-0.5 text-xs font-semibold text-violet-700">{t('Demo-generated result')}</span>}
+            {c.live && <span className="inline-flex items-center gap-1 rounded bg-green-50 px-1.5 py-0.5 text-xs font-semibold text-good-ink"><Radio size={12} /> {t('Live blockchain data')}</span>}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-3">
             <h1 className="text-[38px] leading-none font-semibold tracking-tight text-navy-900">{c.id}</h1>
@@ -198,8 +226,8 @@ export default function Workspace() {
                     <div className="text-[13px] text-stamp-ink">{t('Cash-out point, {n} hops from the reported wallet', { n: n0.hops })}</div>
                     <div className="mt-0.5 font-cond text-[28px] leading-tight font-semibold text-navy-900">{n0.exchange}</div>
                     <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-ink-2">
-                      {n0.fiu_ind_registered ? <BadgeCheck size={14} className="text-good" /> : <Globe size={14} className="text-warn-ink" />}
-                      {t(n0.jurisdiction)}, {n0.fiu_ind_registered ? t('registered with FIU-IND') : t('not registered in India')}
+                      {n0.fiu_ind_registered ? <BadgeCheck size={14} className="text-good" /> : n0.fiu_ind_registered === false ? <Globe size={14} className="text-warn-ink" /> : <CircleHelp size={14} className="text-ink-3" />}
+                      {n0.jurisdiction ? `${t(n0.jurisdiction)}, ` : ''}{n0.fiu_ind_registered ? t('registered with FIU-IND') : n0.fiu_ind_registered === false ? t('not registered in India') : t('FIU-IND status not checked')}
                     </div>
                     {tEx && <div className="mt-1.5 text-xs text-ink-3 tabular">{t('deposited')} {when(tEx)}</div>}
                   </>
@@ -331,9 +359,18 @@ export default function Workspace() {
             <div className="grid gap-5 md:grid-cols-2">
               <Card title={t('Reported wallet')}>
                 <Address value={c.reported_wallet} full />
-                <div className="mt-3 text-xs text-ink-3">{t("Complainant's wallet")}</div>
-                <Address value={c.victim_wallet} full />
+                {c.live ? (
+                  <a href={`https://tronscan.org/#/address/${c.reported_wallet}`} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-700 hover:underline">
+                    <ExternalLink size={12} /> {t('Verify on Tronscan')}
+                  </a>
+                ) : (
+                  <>
+                    <div className="mt-3 text-xs text-ink-3">{t("Complainant's wallet")}</div>
+                    <Address value={c.victim_wallet} full />
+                  </>
+                )}
               </Card>
+              {c.live && <LiveTraceCard meta={c.live_meta} />}
             </div>
           </div>
         )}
@@ -346,7 +383,7 @@ export default function Workspace() {
         {tab === 'risk' && <RiskTab d={d} />}
         {tab === 'timeline' && <TimelineTab d={d} />}
       </div>
-      <p className="mt-6 max-w-[80ch] text-sm text-ink-2"><span className="text-ink-3">{t('Complaint summary:')}</span> {c.description}</p>
+      <p className="mt-6 max-w-[80ch] text-sm text-ink-2"><span className="text-ink-3">{t('Complaint summary:')}</span> {tMessage(c.description)}</p>
     </>
   )
 }

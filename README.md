@@ -160,7 +160,7 @@ This repository is the **UI prototype and dataset** for the hackathon. We are cl
 | Laundering-wallet classifier - supervised ML | ✅ Built (demo labels) | Gradient-boosted trees, validated with 5-fold cross-validation grouped by case. Trained on synthetic labels, so the metrics are optimistic until real labelled cases are available |
 | Attribution confidence | ✅ Built | Fixed formula: 93% base for a deposit swept into a known hot wallet, -3.5 per hop beyond 2, -12 through a mixer, limited to 52-97% |
 | Pattern labels, clusters | 🧪 Modelled | Produced together with the dummy data to show the intended output |
-| Live blockchain data | 🔜 Planned | The app reads JSON through a mock API layer ([`src/lib/api.js`](src/lib/api.js)) shaped like the future FastAPI responses |
+| Live blockchain data | ✅ TRON (beta) | **New investigation → Live TRON blockchain** reads real USDT (TRC-20) transfers through TronGrid and follows them up to 4 hops (see [Live TRON tracing](#live-tron-tracing)). Other chains still use the demo data through the mock API layer ([`src/lib/api.js`](src/lib/api.js)) |
 | FastAPI, Celery + Redis, PostgreSQL, Neo4j | 🔜 Planned | See [target architecture](#target-architecture) |
 | Supervised model on real labelled cases, real address-label database | 🔜 Future | Retrain the classifier on labelled Indian cases; the rules stay as the explainable baseline |
 | Regional-language UI | ✅ Built | English, Hindi and Marathi across every screen, alert and report; the Sec. 94 notice stays in English for the exchange (see [Languages](#languages)) |
@@ -278,6 +278,24 @@ No login is needed.
 4. If RAAZ is served from another site (for example Vercel), start Ollama with `OLLAMA_ORIGINS=https://your-site.vercel.app`.
 
 The model only receives the structured facts of one case and writes the narrative. Tables, amounts and addresses in the report come from the trace data, never from the model. Without Ollama, a template narrative is used, so the report always works.
+
+### Live TRON tracing
+
+Pick **Live TRON blockchain (beta)** on the New investigation page and enter a TRON wallet. A small serverless function, [`api/trace.js`](api/trace.js), reads the wallet's real USDT (TRC-20) transfers from TronGrid and follows the money:
+
+- the biggest senders into the wallet become the sources (the one matching the amount lost is taken as the complainant);
+- each wallet's largest outflows after the money arrived are followed, up to 4 hops;
+- a wallet that sends 80%+ of its USDT into a known exchange wallet is marked as that exchange's **deposit address**, which is what the notice asks KYC for. Exchange wallets come from a hand-checked list in [`api/_exchanges.js`](api/_exchanges.js), plus Tronscan's public tags when a Tronscan key is set.
+
+The result is turned into a normal RAAZ case ([`src/lib/liveCase.js`](src/lib/liveCase.js)), so the graph, attribution, risk score, report and notice all work on it. Every wallet links to Tronscan so anyone can check the transfers. Rules that need more data (sanctions list, mixers, smurfing) are shown as "not checked" in live mode.
+
+Setup:
+
+1. Get a free API key at [trongrid.io](https://www.trongrid.io) (optional: one at [tronscan.org](https://tronscan.org) too).
+2. In Vercel, add `TRONGRID_API_KEY` (and `TRONSCAN_API_KEY`) under Settings → Environment Variables, then redeploy. For local runs put them in `.env` (see [`.env.example`](.env.example)); `npm run dev` serves `/api/trace` too.
+3. `node scripts/test-live-trace.mjs` tests the tracer offline against recorded TronGrid-style responses.
+
+The keys stay on the server; the browser only calls `/api/trace`.
 
 ### Languages
 

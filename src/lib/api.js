@@ -4,6 +4,7 @@
 // e.g. GET /api/cases  ->  listCases(),  POST /api/investigations  ->  createInvestigation()
 
 import { detectNetwork, nowSim } from './format'
+import { buildLiveCase } from './liveCase'
 
 const BASE = '/data'
 const cache = new Map()
@@ -54,6 +55,7 @@ export async function getCase(id) {
 export async function getNx(id) {
   const d = created[id]
   if (!d) return get(`nx/${id}.json`)
+  if (d.live) throw new Error('NetworkX metrics for live traces come from the Python backend (planned).')
   // demo-generated case: reuse the template's NetworkX result with the new wallet + amounts
   const [base, tpl] = await Promise.all([get(`nx/${d.template_of}.json`), get(`cases/${d.template_of}.json`)])
   const nx = structuredClone(base)
@@ -243,6 +245,34 @@ export async function createInvestigation(f) {
   if (f.watch) await addToWatchlist({ address: addr, network: f.network, case_id: id, label: 'Reported suspect wallet',
     reason: `Suspect wallet in ${f.fraudType}`, risk_score: d.case.risk_score, balance: null, token: d.case.token })
   return { id, existing: false }
+}
+
+/**
+ * Live trace (TRON USDT only): GET /api/trace runs on the server with the TronGrid key, then the result
+ * is shaped into a normal RAAZ case for this browser session.
+ */
+export async function createLiveInvestigation(f) {
+  const q = new URLSearchParams({ address: f.address.trim(), hops: String(Math.min(4, Number(f.depth) || 3)), window: String(f.window || 30) })
+  if (f.incidentDate) q.set('since', f.incidentDate)
+  let res
+  try {
+    res = await fetch(`/api/trace?${q}`)
+  } catch {
+    throw new Error('Could not reach the live trace service.')
+  }
+  const body = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    const err = new Error(body.error || `Live trace failed (${res.status})`)
+    err.hint = body.hint
+    throw err
+  }
+  const id = `RAAZ-LIVE-${String(Object.values(created).filter((d) => d.live).length + 1).padStart(3, '0')}`
+  const d = buildLiveCase(body, f, { id, nowIso: new Date().toISOString() })
+  created[id] = d
+  saveSS('raaz.created', created)
+  if (f.watch) await addToWatchlist({ address: d.case.reported_wallet, network: 'TRON', case_id: id, label: 'Reported suspect wallet',
+    reason: `Suspect wallet in ${f.fraudType}`, risk_score: d.case.risk_score, balance: null, token: 'USDT' })
+  return { id, existing: false, live: true }
 }
 
 // ---- global search -----------------------------------------------------------

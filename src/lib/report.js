@@ -81,7 +81,7 @@ export function templateNarrative(f) {
       t('The complainant transferred {amt} in {n} payment(s) of {tok} on the {net} network to the reported wallet {w}.', { amt: f.amount_lost, n: f.victim_payments, tok: f.token, net: f.network, w: f.reported_wallet }) + ' ' +
       t('RAAZ traced {a} wallets and {b} transactions up to {h} hops.', { a: f.wallets_traced, b: f.transactions_traced, h: f.max_hop_depth }) + ' ' +
       (n
-        ? t('{amt} of the traced funds reached exchange-controlled deposit addresses; the nearest probable VASP is {ex} ({jur}) at {h} hops with {c} attribution confidence.', { amt: f.traced_to_exchanges, ex: n.name, jur: t(n.jurisdiction), h: n.hops, c: n.confidence })
+        ? t('{amt} of the traced funds reached exchange-controlled deposit addresses; the nearest probable VASP is {ex} ({jur}) at {h} hops with {c} attribution confidence.', { amt: f.traced_to_exchanges, ex: n.name, jur: n.jurisdiction ? t(n.jurisdiction) : t('jurisdiction not checked'), h: n.hops, c: n.confidence })
         : t('No exchange deposit has been observed yet; {amt} remains in layering wallets.', { amt: f.held_in_wallets })),
   )
   lines.push(`### ${t('Modus Operandi and Fund-Flow Analysis')}`)
