@@ -135,6 +135,7 @@ export async function traceTron({ address, hops = 3, fanout = 3, since, windowDa
   try {
     const inbound = await client.transfers(address, 'to', { min: t0, max: t1, limit: 50 })
     if (inbound.length) arrival = Math.min(...inbound.map((t) => t.timestamp))
+    root.received_in_window = Number(inbound.reduce((s, t) => s + t.amount, 0).toFixed(6))
     for (const g of groupByCounterparty(inbound, 'from').slice(0, 6)) {
       node(g.address, -1, 'source')
       g.txs.forEach(addTx)
@@ -164,6 +165,10 @@ export async function traceTron({ address, hops = 3, fanout = 3, since, windowDa
       const groups = groupByCounterparty(out.filter((t) => t.to !== n.address && t.to !== USDT_CONTRACT), 'to')
       n.sent_in_window = Number(groups.reduce((s, g) => s + g.total, 0).toFixed(6)) // lets the UI estimate what is still parked here
       if (out.length >= 50) n.sent_capped = true
+      // behaviour signals used by the risk rules (normal wallets pay few people slowly; mule wallets split fast)
+      n.recipients_in_window = groups.length
+      n.recipients_within_2h = groups.filter((g) => g.first - from <= 2 * 3600e3).length
+      n.first_out_gap_min = groups.length ? Math.round((Math.min(...groups.map((g) => g.first)) - from) / 60000) : null
       if (!groups.length) return
 
       // label the biggest recipients (curated list is free; Tronscan lookups only for the top few)
